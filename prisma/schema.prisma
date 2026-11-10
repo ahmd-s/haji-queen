@@ -1,0 +1,225 @@
+// Haji Queens — Prisma schema (SQLite for sandbox; portable to Postgres/Supabase)
+// NOTE: SQLite has no native arrays/enums-as-lists, so multi-value fields are
+// stored as JSON strings and parsed at the application boundary.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../db/hajiqueens.db"
+}
+
+// ────────────────────────── Admin & Auth ──────────────────────────
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("ADMIN") // ADMIN | SUPER_ADMIN
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ────────────────────────── Catalogue ──────────────────────────
+
+model Category {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  name          String
+  tagline       String?
+  description   String?
+  bannerImage   String?
+  tileImage     String?
+  featuredOrder Int      @default(0) // order on homepage (0 = hidden)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  products      Product[]
+}
+
+// HQ_ORIGINAL = designed by Haji Queens
+// TRUSTED_SUPPLIER = sourced from a supplier catalogue (retail-branded identically)
+model Product {
+  id               String   @id @default(uuid())
+  slug             String   @unique
+  name             String
+  description      String
+  fabricDetails    String?
+  careInstructions String?
+  categoryId       String
+  category         Category @relation(fields: [categoryId], references: [id])
+  source           String   @default("HQ_ORIGINAL")
+  price            Float // final retail price — the ONLY price visible to customers
+  compareAtPrice   Float?
+  colors           String   @default("[]") // JSON: [{name, hex}]
+  sizes            String   @default("[]") // JSON: ["XS","S",...]
+  images           String   @default("[]") // JSON: ["/images/..."]
+  sizeGuide        String? // JSON rows for size chart (optional)
+  badge            String? // e.g. "New In" | "Bestseller"
+  stock            Int      @default(0) // aggregate; source of truth = variants
+  featured         Boolean  @default(false)
+  visible          Boolean  @default(true)
+  popularity       Int      @default(0)
+  sku              String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  variants         ProductVariant[]
+  orderItems       OrderItem[]
+  catalogueEntry   SupplierCatalogueEntry?
+}
+
+model ProductVariant {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size      String
+  color     String
+  stock     Int     @default(0)
+  sku       String?
+
+  @@unique([productId, size, color])
+}
+
+// ────────────────────────── Suppliers (internal only) ──────────────────────────
+// Wholesale prices, costs and margins are NEVER exposed through public APIs.
+
+model Supplier {
+  id              String   @id @default(uuid())
+  name            String
+  contactPerson   String?
+  phone           String?
+  email           String?
+  catalogName     String?
+  notes           String? // internal notes
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  catalogueEntries SupplierCatalogueEntry[]
+}
+
+model SupplierCatalogueEntry {
+  id             String   @id @default(uuid())
+  supplierId     String
+  supplier       Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierRef    String? // supplier's product reference
+  itemName       String
+  wholesalePrice Float // internal cost — restricted
+  markupPct      Float    @default(0) // e.g. 30 = +30%
+  fixedMarkup    Float    @default(0) // flat ₹ amount added
+  availability   String   @default("AVAILABLE") // AVAILABLE | LOW_STOCK | OUT_OF_STOCK | DISCONTINUED
+  imageUrl       String?
+  notes          String? // internal notes
+  productId      String?  @unique
+  product        Product? @relation(fields: [productId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ────────────────────────── Customers & Orders ──────────────────────────
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  orderNumber   String   @unique // HQ-240001 style
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  customerName  String
+  phone         String
+  email         String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  state         String
+  pincode       String
+  subtotal      Float
+  shippingFee   Float    @default(0)
+  total         Float
+  status        String   @default("PENDING") // PENDING|CONFIRMED|PROCESSING|SHIPPED|DELIVERED|CANCELLED
+  paymentMethod String // COD | BANK_TRANSFER | RAZORPAY
+  paymentStatus String   @default("UNPAID") // UNPAID|PAID|REFUNDED|FAILED
+  paymentRef    String? // gateway reference when live
+  customerNote  String?
+  internalNotes String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName String
+  productSlug String
+  imageUrl    String?
+  size        String?
+  color       String?
+  quantity    Int
+  unitPrice   Float // retail at time of purchase
+  lineTotal   Float
+}
+
+// ────────────────────────── Inquiries ──────────────────────────
+
+model MeasurementInquiry {
+  id                  String   @id @default(uuid())
+  fullName            String
+  phone               String
+  email               String?
+  preferredContact    String   @default("WHATSAPP") // WHATSAPP | PHONE | EMAIL
+  garmentType         String
+  designNotes         String?
+  colorPreference     String?
+  sizingPreference    String   @default("CUSTOM") // STANDARD | CUSTOM
+  standardSize        String?
+  bust                String?
+  waist               String?
+  hips                String?
+  shoulder            String?
+  sleeveLength        String?
+  armhole             String?
+  dressLength         String?
+  otherMeasurements   String?
+  instructions        String?
+  consultationDate    String? // ISO date (booking request, not confirmed appointment)
+  consultationTime    String?
+  referenceImageUrl   String?
+  consent             Boolean  @default(false)
+  status              String   @default("NEW") // NEW|IN_REVIEW|SCHEDULED|COMPLETED|ARCHIVED
+  internalNotes       String?
+  source              String? // e.g. "product:embroidered-occasion-abaya"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model ContactInquiry {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  message   String
+  status    String   @default("NEW")
+  createdAt DateTime @default(now())
+}
+
+// ────────────────────────── Editable site content ──────────────────────────
+
+model SiteContent {
+  key       String   @id
+  value     String // JSON payload
+  updatedAt DateTime @updatedAt
+}

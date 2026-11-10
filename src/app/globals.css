@@ -1,0 +1,236 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* Brand palette */
+  --color-ivory: #faf8f3;
+  --color-cream: #f4efe4;
+  --color-champagne: #e9dfcc;
+  --color-gold: #b58a36;
+  --color-gold-deep: #97742c;
+  --color-espresso: #302820;
+  --color-taupe: #a99b88;
+  --color-charcoal: #292929;
+
+  /* Typography */
+  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-sans: var(--font-manrope), Manrope, "Segoe UI", sans-serif;
+
+  /* shadcn token mapping */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.125rem;
+  --background: #faf8f3;
+  --foreground: #302820;
+  --card: #ffffff;
+  --card-foreground: #302820;
+  --popover: #ffffff;
+  --popover-foreground: #302820;
+  --primary: #302820;
+  --primary-foreground: #faf8f3;
+  --secondary: #e9dfcc;
+  --secondary-foreground: #302820;
+  --muted: #f1ecdf;
+  --muted-foreground: #857a67;
+  --accent: #f1ecdf;
+  --accent-foreground: #302820;
+  --destructive: #b3261e;
+  --border: #e4dcc9;
+  --input: #ddd3bd;
+  --ring: #b58a36;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: #b58a36;
+    color: #faf8f3;
+  }
+  /* Refined scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f4efe4;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cfc4aa;
+    border: 3px solid #f4efe4;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #b58a36;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer components {
+  /* Layout container */
+  .container-hq {
+    @apply mx-auto w-full max-w-[1320px] px-5 md:px-8 lg:px-12;
+  }
+  .container-hq-narrow {
+    @apply mx-auto w-full max-w-[880px] px-5 md:px-8;
+  }
+
+  /* Small caps section kicker with gold rule */
+  .kicker {
+    @apply inline-flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.28em] text-gold;
+  }
+  .kicker::before {
+    content: "";
+    @apply block h-px w-8 bg-gold/70;
+  }
+  .kicker-center::after {
+    content: "";
+    @apply block h-px w-8 bg-gold/70;
+  }
+
+  /* Editorial display type */
+  .display-1 {
+    font-family: var(--font-display);
+    @apply font-normal leading-[1.04] tracking-[-0.01em];
+    font-size: clamp(2.6rem, 6vw, 4.9rem);
+  }
+  .display-2 {
+    font-family: var(--font-display);
+    @apply font-normal leading-[1.08] tracking-[-0.005em];
+    font-size: clamp(2rem, 4.2vw, 3.4rem);
+  }
+  .display-3 {
+    font-family: var(--font-display);
+    @apply font-normal leading-[1.12];
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  }
+
+  /* Animated underline for nav / inline links */
+  .link-underline {
+    @apply relative;
+  }
+  .link-underline::after {
+    content: "";
+    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-gold transition-all duration-300 ease-out;
+  }
+  .link-underline:hover::after,
+  .link-underline[data-active="true"]::after {
+    @apply w-full;
+  }
+
+  /* Primary / secondary buttons */
+  .btn-hq,
+  .btn-hq-primary,
+  .btn-hq-outline,
+  .btn-hq-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 text-[12px] font-semibold uppercase tracking-[0.22em] transition-all duration-300 select-none;
+  }
+  .btn-hq-primary {
+    @apply bg-espresso text-ivory hover:bg-gold;
+  }
+  .btn-hq-outline {
+    @apply border border-espresso/30 bg-transparent text-espresso hover:border-espresso hover:bg-espresso hover:text-ivory;
+  }
+  .btn-hq-ghost {
+    @apply text-espresso hover:text-gold;
+  }
+  .btn-hq:disabled,
+  .btn-hq-primary:disabled,
+  .btn-hq-outline:disabled,
+  .btn-hq-ghost:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  /* Image treatment */
+  .img-zoom {
+    @apply overflow-hidden;
+  }
+  .img-zoom img {
+    @apply transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)];
+  }
+  .img-zoom:hover img {
+    transform: scale(1.045);
+  }
+
+  /* Hairline separators */
+  .hairline {
+    @apply border-border;
+  }
+  .gold-hairline {
+    border-color: rgb(181 138 54 / 0.35);
+  }
+
+  /* Form fields */
+  .field-hq {
+    @apply h-11 w-full border border-input bg-white px-3.5 text-sm text-espresso placeholder:text-taupe focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold/40;
+    border-radius: 2px;
+  }
+  .field-label {
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-espresso/70;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
