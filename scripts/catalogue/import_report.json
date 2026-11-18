@@ -1,0 +1,38 @@
+{
+  "version": "V1.1",
+  "imported": [],
+  "updated": [
+    {
+      "id": "AB-234",
+      "name": "Luxury Organza Shrug Style Abaya",
+      "note": "catalogue entry refreshed; product untouched"
+    },
+    {
+      "id": "AB-233",
+      "name": "Elegant Shrug Style Kaftan Abaya",
+      "note": "catalogue entry refreshed; product untouched"
+    },
+    {
+      "id": "AB-222",
+      "name": "Elegant Coat Set",
+      "note": "catalogue entry refreshed; product untouched"
+    },
+    {
+      "id": "HQ-ST-001",
+      "name": "Embroidered Sleeve Skirt & Top Set",
+      "note": "catalogue entry refreshed; product untouched"
+    },
+    {
+      "id": "HQ-EID-001",
+      "name": "Eid Arrival – Custom Inner Shrug Skirt Set",
+      "note": "catalogue entry refreshed; product untouched"
+    },
+    {
+      "id": "HQ-ST-002",
+      "name": "Embroidery Skirt Top with Inner",
+      "note": "catalogue entry refreshed; product untouched"
+    }
+  ],
+  "skipped": [],
+  "at": "2026-11-18T16:15:33.058Z"
+}

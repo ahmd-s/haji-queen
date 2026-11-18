@@ -1,14 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  PackageX,
+  PackagePlus,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatINR } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 type AdminProduct = {
   id: string;
+  sku: string | null;
   slug: string;
   name: string;
   description: string;
@@ -55,6 +66,81 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<AdminProduct | "new" | null>(null);
+  const [filter, setFilter] = useState<"all" | "live" | "pending" | "hidden">("all");
+
+  /** A product is "pending approval" while hidden AND missing essentials
+   *  (selling price or images) — e.g. freshly imported catalogue rows. */
+  const needsApproval = (p: AdminProduct) => !p.visible && (p.price <= 0 || p.images.length === 0);
+
+  const visibleProducts = useMemo(() => {
+    if (filter === "all") return products;
+    return products.filter((p) => {
+      if (filter === "live") return p.visible;
+      if (filter === "pending") return needsApproval(p);
+      return !p.visible && !needsApproval(p);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, filter]);
+
+  const patchProduct = async (p: AdminProduct, patch: Partial<AdminProduct>, okTitle: string) => {
+    const body = {
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      fabricDetails: p.fabricDetails ?? "",
+      careInstructions: p.careInstructions ?? "",
+      categoryId: p.categoryId,
+      source: p.source,
+      price: p.price,
+      compareAtPrice: p.compareAtPrice,
+      colors: p.colors,
+      sizes: p.sizes,
+      images: p.images,
+      badge: p.badge ?? "",
+      featured: p.featured,
+      visible: p.visible,
+      stock: p.stock,
+      ...patch,
+    };
+    const res = await fetch(`/api/admin/products/${p.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast({ title: d.error ?? "Update failed" });
+      return false;
+    }
+    toast({ title: okTitle });
+    load();
+    return true;
+  };
+
+  const toggleVisible = async (p: AdminProduct) => {
+    if (!p.visible && needsApproval(p)) {
+      toast({
+        title: "Cannot publish — pending approval",
+        description: p.price <= 0
+          ? "Set the customer selling price first."
+          : "Upload at least one product image first.",
+      });
+      return;
+    }
+    await patchProduct(p, { visible: !p.visible }, p.visible ? "Product unpublished" : "Product published");
+  };
+
+  const toggleStock = async (p: AdminProduct) => {
+    if (p.stock > 0) {
+      if (!confirm(`Mark "${p.name}" as out of stock (0 units)?`)) return;
+      await patchProduct(p, { stock: 0 }, "Marked out of stock");
+    } else {
+      const raw = prompt(`Restock quantity for "${p.name}":`, "10");
+      const qty = raw ? Number.parseInt(raw, 10) : NaN;
+      if (!raw || Number.isNaN(qty) || qty < 0) return;
+      await patchProduct(p, { stock: qty }, `Stock updated to ${qty}`);
+    }
+  };
 
   const load = async () => {
     const p = await fetch("/api/admin/products").then((r) => r.json());
@@ -84,6 +170,29 @@ export default function AdminProductsPage() {
         </button>
       </div>
 
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        {([
+          ["all", "All"],
+          ["live", "Live"],
+          ["pending", "Pending approval"],
+          ["hidden", "Hidden"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setFilter(key)}
+            className={cn(
+              "h-8 border px-3 text-[12px] font-medium",
+              filter === key ? "border-espresso bg-espresso text-ivory" : "border-border text-espresso/70 hover:border-gold"
+            )}
+          >
+            {label}
+          </button>
+        ))}
+        <span className="ml-1 text-[11.5px] text-taupe">
+          {visibleProducts.length} of {products.length} shown
+        </span>
+      </div>
+
       {loading ? (
         <p className="mt-8 text-sm text-taupe">Loading products…</p>
       ) : (
@@ -101,7 +210,7 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {visibleProducts.map((p) => (
                 <tr key={p.id} className="border-b border-border last:border-0 align-middle">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -113,6 +222,7 @@ export default function AdminProductsPage() {
                       <div>
                         <p className="font-semibold text-espresso">{p.name}</p>
                         <p className="text-[11.5px] text-taupe">/{p.slug}</p>
+                        {p.sku && <p className="text-[11px] text-taupe/80">SKU {p.sku}</p>}
                       </div>
                     </div>
                   </td>
@@ -141,13 +251,37 @@ export default function AdminProductsPage() {
                       {p.featured && (
                         <span className="bg-gold/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-gold-deep">Featured</span>
                       )}
+                      {needsApproval(p) && (
+                        <span className="border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-gold-deep">
+                          Pending approval
+                        </span>
+                      )}
                       {!p.visible && (
                         <span className="bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive">Hidden</span>
+                      )}
+                      {p.visible && p.stock === 0 && (
+                        <span className="bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive">Out of stock</span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={() => toggleVisible(p)}
+                        className="inline-flex h-8 w-8 items-center justify-center border border-border text-espresso hover:border-gold hover:text-gold"
+                        aria-label={p.visible ? `Unpublish ${p.name}` : `Publish ${p.name}`}
+                        title={p.visible ? "Unpublish" : "Publish"}
+                      >
+                        {p.visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => toggleStock(p)}
+                        className="inline-flex h-8 w-8 items-center justify-center border border-border text-espresso hover:border-gold hover:text-gold"
+                        aria-label={p.stock > 0 ? `Mark ${p.name} out of stock` : `Restock ${p.name}`}
+                        title={p.stock > 0 ? "Mark out of stock" : "Restock"}
+                      >
+                        {p.stock > 0 ? <PackageX className="h-3.5 w-3.5" /> : <PackagePlus className="h-3.5 w-3.5" />}
+                      </button>
                       <button
                         onClick={() => setEditing(p)}
                         className="inline-flex h-8 w-8 items-center justify-center border border-border text-espresso hover:border-gold hover:text-gold"
@@ -229,7 +363,9 @@ function ProductForm({
       : { ...EMPTY, categoryId: categories[0]?.id ?? "" }
   );
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -237,10 +373,47 @@ function ProductForm({
   const slugify = (s: string) =>
     s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
 
+  const uploadFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    const fd = new FormData();
+    Array.from(files).forEach((f) => fd.append("files", f));
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const d = await res.json();
+      if (!res.ok) {
+        setError(d.error ?? "Upload failed.");
+      } else {
+        set("images", [...form.images, ...(d.urls ?? [])]);
+        toast({
+          title: `${d.urls?.length ?? 0} image(s) uploaded`,
+          description: d.errors?.length ? `Skipped: ${d.errors.join(" ")}` : undefined,
+        });
+      }
+    } catch {
+      setError("Upload failed — please try again.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   const save = async () => {
     setError(null);
-    if (!form.name.trim() || form.price <= 0 || !form.categoryId || form.description.trim().length < 10 || form.images.length === 0) {
-      setError("Name, description (10+ chars), price, category and at least one image are required.");
+    const problems: string[] = [];
+    if (!form.name.trim()) problems.push("a name");
+    if (form.description.trim().length < 10) problems.push("a description (10+ characters)");
+    if (!form.categoryId) problems.push("a category");
+    if (form.visible) {
+      // Publish guard mirrors the server: visible products must be complete.
+      if (form.price <= 0)
+        problems.push("a selling price above ₹0 (or untick “Visible in store” while the price is pending)");
+      if (form.images.length === 0)
+        problems.push("at least one product image (or untick “Visible in store” while photos are pending)");
+    }
+    if (problems.length) {
+      setError("Required: " + problems.join(", ") + ".");
       return;
     }
     setSaving(true);
@@ -264,9 +437,18 @@ function ProductForm({
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-espresso/50 p-4 py-10">
       <div className="w-full max-w-3xl bg-ivory shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="font-display text-2xl text-espresso">
-            {product ? "Edit Product" : "Add Product"}
-          </h2>
+          <div>
+            <h2 className="font-display text-2xl text-espresso">
+              {product ? "Edit Product" : "Add Product"}
+            </h2>
+            {product?.sku && (
+              <p className="mt-0.5 text-[11.5px] text-taupe">
+                SKU {product.sku}
+                {product.price <= 0 && " · price pending approval — save hidden until confirmed"}
+                {product.price > 0 && product.images.length === 0 && " · image pending upload"}
+              </p>
+            )}
+          </div>
           <button onClick={onClose} className="inline-flex h-9 w-9 items-center justify-center hover:text-gold" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
@@ -426,15 +608,32 @@ function ProductForm({
                   </button>
                 </div>
               ))}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  onClick={() => set("images", [...form.images, "/images/p-"]) }
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="btn-hq-outline !px-4 !py-2 !text-[12px] disabled:opacity-60"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  {uploading ? "Uploading…" : "Upload images"}
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => uploadFiles(e.target.files)}
+                />
+                <button
+                  onClick={() => set("images", [...form.images, "/images/p-"])}
                   className="text-[12px] font-semibold uppercase tracking-[0.14em] text-gold hover:underline"
                 >
                   + Add image path
                 </button>
                 <span className="text-[11.5px] text-taupe">
-                  Tip: images live in /public/images — e.g. /images/p-classic-black-1.jpg
+                  JPG/PNG/WEBP up to 8 MB each — originals are stored untouched; first image = main.
                 </span>
               </div>
             </div>

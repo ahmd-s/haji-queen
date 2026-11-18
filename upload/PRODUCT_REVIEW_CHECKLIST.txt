@@ -1,0 +1,16 @@
+HAJI QUEENS PRODUCT REVIEW CHECKLIST
+
+[ ] Product ID is official or provisional mapping approved
+[ ] Product name and category confirmed
+[ ] Customer-facing description approved
+[ ] Fabric wording confirmed (including supplier spelling)
+[ ] Exact colour names and image mapping confirmed
+[ ] Sizes and measurement units confirmed
+[ ] Supplier quote distinguished from wholesale cost and website price
+[ ] Markup / customer selling price approved
+[ ] Stock or pre-order status confirmed
+[ ] Shipping, postal and dealer terms clarified
+[ ] All product images match this exact design and variant
+[ ] Accessories shown are confirmed as included or excluded
+[ ] Supplier identity and internal costs hidden from customers
+[ ] is_published set to TRUE only after all checks and client approval

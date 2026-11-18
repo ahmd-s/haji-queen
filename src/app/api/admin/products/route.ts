@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     products: products.map((p) => ({
       id: p.id,
+      sku: p.sku,
       slug: p.slug,
       name: p.name,
       categoryName: p.category.name,
