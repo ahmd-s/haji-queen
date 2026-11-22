@@ -257,7 +257,9 @@ export function ProductDetail({
               <p className="text-xl font-semibold text-gold-deep">Price Pending</p>
             )}
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-taupe">
-              {product.priceConfirmed ? AVAILABILITY_LABEL[normaliseAvailability(product.availability)] : "Enquiry only"}
+              {product.purchasable
+                ? AVAILABILITY_LABEL[normaliseAvailability(product.availability)]
+                : "Enquiry only"}
             </span>
           </div>
 
@@ -377,7 +379,7 @@ export function ProductDetail({
               )}
             >
               {!product.purchasable
-                ? "Price pending — enquiry only"
+                ? `${product.unavailableReason ?? "Enquiry only"} — enquiry only`
                 : product.trackStock
                   ? selectedVariant && selectedVariant.stock <= 3
                     ? `Only ${selectedVariant.stock} left in your size`

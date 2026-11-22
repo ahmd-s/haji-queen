@@ -1,0 +1,61 @@
+{
+  "_note": "Four-product addition (folders p1–p4, supplied 2026-11-22). Source: 'haji queen product catalogue' folder. No supplier colour names were given; colour names describe the photographed garments. hex/hex2 are swatch approximations (jacket or top / skirt). crop = [top, bottom] pixels trimmed to remove Instagram UI overlays (mute icon, '2/7' counter) — no pixels are edited.",
+  "products": [
+    {
+      "folder": "p1",
+      "existingSku": "HQ-ST-002",
+      "slug": "embroidery-skirt-top-with-inner",
+      "colours": [
+        { "name": "Navy", "hex": "#1f2a4f", "files": ["WhatsApp Image 2026-11-18 at 12.11.14 PM.jpeg"] },
+        { "name": "Red", "hex": "#9e1830", "files": ["WhatsApp Image 2026-11-18 at 12.11.15 PM (1).jpeg"] },
+        { "name": "Brown", "hex": "#3b2320", "files": ["WhatsApp Image 2026-11-18 at 12.11.15 PM.jpeg"] },
+        { "name": "Black", "hex": "#15161a", "files": ["WhatsApp Image 2026-11-18 at 12.11.16 PM.jpeg"] },
+        { "name": "Olive", "hex": "#3a4030", "files": ["WhatsApp Image 2026-11-18 at 12.11.17 PM.jpeg"] }
+      ]
+    },
+    {
+      "folder": "p2",
+      "sku": "HQ-PS-001",
+      "slug": "pinafore-shirt",
+      "colours": [
+        { "name": "Camel/White", "hex": "#b08a5e", "hex2": "#f2efe8", "files": ["WhatsApp Image 2026-11-18 at 12.11.18 PM.jpeg"] },
+        { "name": "Blue/White", "hex": "#4a5f7a", "hex2": "#f2efe8", "files": ["WhatsApp Image 2026-11-18 at 12.11.19 PM.jpeg"] },
+        { "name": "Brown/Cream", "hex": "#4a2c22", "hex2": "#e8dcc6", "files": ["WhatsApp Image 2026-11-18 at 12.11.20 PM (1).jpeg"] },
+        { "name": "Mustard/White", "hex": "#8c7420", "hex2": "#f2efe8", "files": ["WhatsApp Image 2026-11-18 at 12.11.20 PM.jpeg"] },
+        { "name": "Maroon/White", "hex": "#7a1e2a", "hex2": "#f2efe8", "files": ["WhatsApp Image 2026-11-18 at 12.11.22 PM.jpeg"] }
+      ]
+    },
+    {
+      "folder": "p3",
+      "sku": "HQ-SP-001",
+      "slug": "shirt-with-pinafore",
+      "colours": [
+        {
+          "name": "Black/Red",
+          "hex": "#141416",
+          "hex2": "#9c1c2c",
+          "files": [
+            "WhatsApp Image 2026-11-18 at 12.11.23 PM.jpeg",
+            "WhatsApp Image 2026-11-18 at 12.11.24 PM (1).jpeg",
+            "WhatsApp Image 2026-11-18 at 12.11.24 PM.jpeg",
+            "WhatsApp Image 2026-11-18 at 12.11.25 PM.jpeg"
+          ]
+        }
+      ]
+    },
+    {
+      "folder": "p4",
+      "sku": "HQ-ST-003",
+      "slug": "skirt-with-top",
+      "colours": [
+        {
+          "name": "White/Blush Pink",
+          "hex": "#f4f2ee",
+          "hex2": "#d8bdb5",
+          "files": ["WhatsApp Image 2026-11-18 at 12.11.27 PM.jpeg", "p4 image 2.jpeg", "p4 image 3.jpeg"],
+          "crop": { "WhatsApp Image 2026-11-18 at 12.11.27 PM.jpeg": [0, 85], "p4 image 2.jpeg": [0, 85], "p4 image 3.jpeg": [95, 85] }
+        }
+      ]
+    }
+  ]
+}

@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { ProductDetail } from "@/components/product/product-detail";
 import { ProductCard } from "@/components/product/product-card";
 import { Reveal } from "@/components/motion/reveal";
 import { getContent, getProductBySlug, getRelatedProducts } from "@/lib/data";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+
+/** Unpublished products open only for a signed-in admin (preview). */
+async function isAdmin(): Promise<boolean> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  return Boolean(verifySessionToken(token));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +22,11 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const product = await getProductBySlug(slug, { allowHidden: await isAdmin() });
   if (!product) return { title: "Product" };
   return {
     title: product.name,
+    ...(product.preview ? { robots: { index: false, follow: false } } : {}),
     description: product.description.slice(0, 160),
     openGraph: {
       title: `${product.name} | ${SITE_NAME}`,

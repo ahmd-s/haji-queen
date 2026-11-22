@@ -1,0 +1,293 @@
+{
+  "generatedAt": "2026-11-22T12:35:38.870Z",
+  "products": [
+    {
+      "folder": "p1",
+      "sku": "HQ-ST-002",
+      "existing": true,
+      "slug": "embroidery-skirt-top-with-inner",
+      "colours": [
+        {
+          "name": "Navy",
+          "hex": "#1f2a4f",
+          "images": [
+            "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-navy.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-navy.webp",
+              "from": "p1/WhatsApp Image 2026-11-18 at 12.11.14 PM.jpeg",
+              "width": 1080,
+              "height": 1440,
+              "bytes": 153598,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Red",
+          "hex": "#9e1830",
+          "images": [
+            "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-red.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-red.webp",
+              "from": "p1/WhatsApp Image 2026-11-18 at 12.11.15 PM (1).jpeg",
+              "width": 1080,
+              "height": 1440,
+              "bytes": 244468,
+              "quality": 84
+            }
+          ]
+        },
+        {
+          "name": "Brown",
+          "hex": "#3b2320",
+          "images": [
+            "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-brown.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-brown.webp",
+              "from": "p1/WhatsApp Image 2026-11-18 at 12.11.15 PM.jpeg",
+              "width": 1080,
+              "height": 1440,
+              "bytes": 250852,
+              "quality": 82
+            }
+          ]
+        },
+        {
+          "name": "Black",
+          "hex": "#15161a",
+          "images": [
+            "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-black.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-black.webp",
+              "from": "p1/WhatsApp Image 2026-11-18 at 12.11.16 PM.jpeg",
+              "width": 1080,
+              "height": 1440,
+              "bytes": 241180,
+              "quality": 82
+            }
+          ]
+        },
+        {
+          "name": "Olive",
+          "hex": "#3a4030",
+          "images": [
+            "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-olive.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/embroidery-skirt-top-with-inner/embroidery-skirt-top-with-inner-olive.webp",
+              "from": "p1/WhatsApp Image 2026-11-18 at 12.11.17 PM.jpeg",
+              "width": 1080,
+              "height": 1440,
+              "bytes": 244700,
+              "quality": 82
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "folder": "p2",
+      "sku": "HQ-PS-001",
+      "existing": false,
+      "slug": "pinafore-shirt",
+      "colours": [
+        {
+          "name": "Camel/White",
+          "hex": "#b08a5e",
+          "hex2": "#f2efe8",
+          "images": [
+            "/images/products/pinafore-shirt/pinafore-shirt-camel-white.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/pinafore-shirt/pinafore-shirt-camel-white.webp",
+              "from": "p2/WhatsApp Image 2026-11-18 at 12.11.18 PM.jpeg",
+              "width": 1179,
+              "height": 1462,
+              "bytes": 108152,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Blue/White",
+          "hex": "#4a5f7a",
+          "hex2": "#f2efe8",
+          "images": [
+            "/images/products/pinafore-shirt/pinafore-shirt-blue-white.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/pinafore-shirt/pinafore-shirt-blue-white.webp",
+              "from": "p2/WhatsApp Image 2026-11-18 at 12.11.19 PM.jpeg",
+              "width": 1179,
+              "height": 1472,
+              "bytes": 141776,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Brown/Cream",
+          "hex": "#4a2c22",
+          "hex2": "#e8dcc6",
+          "images": [
+            "/images/products/pinafore-shirt/pinafore-shirt-brown-cream.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/pinafore-shirt/pinafore-shirt-brown-cream.webp",
+              "from": "p2/WhatsApp Image 2026-11-18 at 12.11.20 PM (1).jpeg",
+              "width": 1179,
+              "height": 1429,
+              "bytes": 133154,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Mustard/White",
+          "hex": "#8c7420",
+          "hex2": "#f2efe8",
+          "images": [
+            "/images/products/pinafore-shirt/pinafore-shirt-mustard-white.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/pinafore-shirt/pinafore-shirt-mustard-white.webp",
+              "from": "p2/WhatsApp Image 2026-11-18 at 12.11.20 PM.jpeg",
+              "width": 1179,
+              "height": 1493,
+              "bytes": 129152,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Maroon/White",
+          "hex": "#7a1e2a",
+          "hex2": "#f2efe8",
+          "images": [
+            "/images/products/pinafore-shirt/pinafore-shirt-maroon-white.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/pinafore-shirt/pinafore-shirt-maroon-white.webp",
+              "from": "p2/WhatsApp Image 2026-11-18 at 12.11.22 PM.jpeg",
+              "width": 1024,
+              "height": 1536,
+              "bytes": 119754,
+              "quality": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "folder": "p3",
+      "sku": "HQ-SP-001",
+      "existing": false,
+      "slug": "shirt-with-pinafore",
+      "colours": [
+        {
+          "name": "Black/Red",
+          "hex": "#141416",
+          "hex2": "#9c1c2c",
+          "images": [
+            "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-1.webp",
+            "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-2.webp",
+            "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-3.webp",
+            "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-4.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-1.webp",
+              "from": "p3/WhatsApp Image 2026-11-18 at 12.11.23 PM.jpeg",
+              "width": 1179,
+              "height": 1425,
+              "bytes": 77850,
+              "quality": 88
+            },
+            {
+              "src": "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-2.webp",
+              "from": "p3/WhatsApp Image 2026-11-18 at 12.11.24 PM (1).jpeg",
+              "width": 1179,
+              "height": 1402,
+              "bytes": 75694,
+              "quality": 88
+            },
+            {
+              "src": "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-3.webp",
+              "from": "p3/WhatsApp Image 2026-11-18 at 12.11.24 PM.jpeg",
+              "width": 1179,
+              "height": 1425,
+              "bytes": 77080,
+              "quality": 88
+            },
+            {
+              "src": "/images/products/shirt-with-pinafore/shirt-with-pinafore-black-red-4.webp",
+              "from": "p3/WhatsApp Image 2026-11-18 at 12.11.25 PM.jpeg",
+              "width": 1179,
+              "height": 1425,
+              "bytes": 71104,
+              "quality": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "folder": "p4",
+      "sku": "HQ-ST-003",
+      "existing": false,
+      "slug": "skirt-with-top",
+      "colours": [
+        {
+          "name": "White/Blush Pink",
+          "hex": "#f4f2ee",
+          "hex2": "#d8bdb5",
+          "images": [
+            "/images/products/skirt-with-top/skirt-with-top-white-blush-pink-1.webp",
+            "/images/products/skirt-with-top/skirt-with-top-white-blush-pink-2.webp",
+            "/images/products/skirt-with-top/skirt-with-top-white-blush-pink-3.webp"
+          ],
+          "files": [
+            {
+              "src": "/images/products/skirt-with-top/skirt-with-top-white-blush-pink-1.webp",
+              "from": "p4/WhatsApp Image 2026-11-18 at 12.11.27 PM.jpeg",
+              "width": 1080,
+              "height": 1195,
+              "bytes": 59974,
+              "quality": 88
+            },
+            {
+              "src": "/images/products/skirt-with-top/skirt-with-top-white-blush-pink-2.webp",
+              "from": "p4/p4 image 2.jpeg",
+              "width": 1041,
+              "height": 1195,
+              "bytes": 87892,
+              "quality": 88
+            },
+            {
+              "src": "/images/products/skirt-with-top/skirt-with-top-white-blush-pink-3.webp",
+              "from": "p4/p4 image 3.jpeg",
+              "width": 1062,
+              "height": 1100,
+              "bytes": 156548,
+              "quality": 88
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

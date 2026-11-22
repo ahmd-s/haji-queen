@@ -77,6 +77,11 @@ export function ProductCard({
               {hasPhoto ? "Enquiry Only" : "Coming Soon"}
             </span>
           )}
+          {product.priceConfirmed && !product.purchasable && product.inStock && (
+            <span className="absolute bottom-3 left-3 bg-ivory/95 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-gold-deep">
+              Enquiry Only
+            </span>
+          )}
           {product.priceConfirmed && !product.inStock && (
             <span className="absolute left-3 top-3 bg-espresso/90 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-ivory">
               Sold Out

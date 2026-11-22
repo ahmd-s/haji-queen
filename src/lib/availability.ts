@@ -36,6 +36,9 @@ type Sellable = {
 export function isPurchasable(p: Sellable): boolean {
   if (!p.priceConfirmed || p.price <= 0) return false;
   if (p.sizes.length === 0) return false;
+  // A size-only variant grid is not enough to place an order: colour is an
+  // essential purchase detail. Never invent a colour label for these rows.
+  if (p.variants?.length && !p.variants.some((v) => v.size && v.color)) return false;
   const a = normaliseAvailability(p.availability);
   if (a === "UNAVAILABLE") return false;
   return p.trackStock ? p.stock > 0 : true;
@@ -45,6 +48,7 @@ export function isPurchasable(p: Sellable): boolean {
 export function unavailableReason(p: Sellable): string | null {
   if (!p.priceConfirmed || p.price <= 0) return "Price to be announced";
   if (p.sizes.length === 0) return "Sizes to be confirmed";
+  if (p.variants?.length && !p.variants.some((v) => v.size && v.color)) return "Colour to be confirmed";
   const a = normaliseAvailability(p.availability);
   if (a === "UNAVAILABLE") return "Currently unavailable";
   if (p.trackStock && p.stock <= 0) return "Sold out";
