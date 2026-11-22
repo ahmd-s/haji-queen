@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { parseJson, type CategoryDTO, type ProductDTO } from "@/lib/types";
-import type { Category, Product } from "@prisma/client";
+import { parseJson, type CategoryDTO, type ColorOption, type ProductDTO } from "@/lib/types";
+import { isPurchasable } from "@/lib/availability";
+import type { Category, Prisma, Product } from "@prisma/client";
 
 /**
  * Server-side data access for the storefront.
@@ -9,6 +10,14 @@ import type { Category, Product } from "@prisma/client";
  */
 
 export function toProductDTO(p: Product & { category: Category }): ProductDTO {
+  const sizes = parseJson<string[]>(p.sizes, []);
+  const colors = parseJson<ColorOption[]>(p.colors, []).map((c) => ({
+    name: c.name,
+    hex: c.hex,
+    ...(c.hex2 ? { hex2: c.hex2 } : {}),
+    ...(c.images?.length ? { images: c.images } : {}),
+    available: c.available !== false,
+  }));
   return {
     id: p.id,
     slug: p.slug,
@@ -18,15 +27,21 @@ export function toProductDTO(p: Product & { category: Category }): ProductDTO {
     careInstructions: p.careInstructions,
     category: { slug: p.category.slug, name: p.category.name },
     source: p.source === "TRUSTED_SUPPLIER" ? "TRUSTED_SUPPLIER" : "HQ_ORIGINAL",
-    price: p.price,
-    compareAtPrice: p.compareAtPrice,
-    colors: parseJson<{ name: string; hex: string }[]>(p.colors, []),
-    sizes: parseJson<string[]>(p.sizes, []),
+    // A pending price is never sent to the browser.
+    price: p.priceConfirmed ? p.price : 0,
+    compareAtPrice: p.priceConfirmed ? p.compareAtPrice : null,
+    colors,
+    sizes,
     images: parseJson<string[]>(p.images, []),
     badge: p.badge,
     featured: p.featured,
     stock: p.stock,
-    inStock: p.stock > 0,
+    inStock: p.trackStock ? p.stock > 0 : p.availability !== "UNAVAILABLE",
+    priceConfirmed: p.priceConfirmed,
+    trackStock: p.trackStock,
+    availability: p.availability,
+    sizeNotes: p.sizeNotes,
+    purchasable: isPurchasable({ ...p, sizes }),
   };
 }
 
@@ -49,18 +64,29 @@ export async function getProducts(q: ProductQuery = {}): Promise<ProductDTO[]> {
   if (q.featuredOnly) where.featured = true;
   if (q.search) {
     where.OR = [
-      { name: { contains: q.search } },
-      { description: { contains: q.search } },
-      { category: { name: { contains: q.search } } },
+      // Postgres `contains` is case-sensitive by default (SQLite was not).
+      { name: { contains: q.search, mode: "insensitive" } },
+      { description: { contains: q.search, mode: "insensitive" } },
+      { category: { name: { contains: q.search, mode: "insensitive" } } },
     ];
   }
+  const and: Prisma.ProductWhereInput[] = [];
   if (q.minPrice !== undefined || q.maxPrice !== undefined) {
+    where.priceConfirmed = true; // pending prices never match a price range
     where.price = {
       ...(q.minPrice !== undefined ? { gte: q.minPrice } : {}),
       ...(q.maxPrice !== undefined ? { lte: q.maxPrice } : {}),
     };
   }
-  if (q.inStock) where.stock = { gt: 0 };
+  if (q.inStock) {
+    and.push({
+      OR: [
+        { trackStock: true, stock: { gt: 0 } },
+        { trackStock: false, availability: { in: ["READY_TO_DISPATCH", "PRE_ORDER", "IN_STOCK"] } },
+      ],
+    });
+  }
+  if (and.length) where.AND = and;
 
   const orderBy =
     q.sort === "price-asc"
@@ -89,13 +115,18 @@ export async function getProducts(q: ProductQuery = {}): Promise<ProductDTO[]> {
   return items;
 }
 
-export async function getProductBySlug(slug: string): Promise<ProductDTO | null> {
+export async function getProductBySlug(
+  slug: string,
+  opts: { allowHidden?: boolean } = {}
+): Promise<ProductDTO | null> {
   const row = await db.product.findUnique({
     where: { slug },
     include: { category: true },
   });
-  if (!row || !row.visible) return null;
-  return toProductDTO(row);
+  if (!row) return null;
+  // Unpublished products are only returned for a verified admin preview.
+  if (!row.visible && !opts.allowHidden) return null;
+  return { ...toProductDTO(row), ...(row.visible ? {} : { preview: true }) };
 }
 
 export async function getRelatedProducts(product: ProductDTO, limit = 4): Promise<ProductDTO[]> {

@@ -1,0 +1,429 @@
+{
+  "generatedAt": "2026-11-21T18:47:55.789Z",
+  "products": [
+    {
+      "code": "AB-234",
+      "slug": "luxury-organza-shrug-style-abaya",
+      "colours": [
+        {
+          "name": "Mauve Pink",
+          "hex": "#a06f73",
+          "images": [
+            {
+              "src": "/images/products/luxury-organza-shrug-style-abaya/luxury-organza-shrug-style-abaya-mauve-pink.webp",
+              "from": "AB-234-01.png",
+              "labelsRemoved": true,
+              "width": 1087,
+              "height": 1447,
+              "bytes": 199660,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Taupe",
+          "hex": "#906e5b",
+          "images": [
+            {
+              "src": "/images/products/luxury-organza-shrug-style-abaya/luxury-organza-shrug-style-abaya-taupe.webp",
+              "from": "AB-234-02.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 223814,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Dusty Grey",
+          "hex": "#6e6b77",
+          "images": [
+            {
+              "src": "/images/products/luxury-organza-shrug-style-abaya/luxury-organza-shrug-style-abaya-dusty-grey.webp",
+              "from": "AB-234-03.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 198390,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Ivory",
+          "hex": "#d5baa5",
+          "images": [
+            {
+              "src": "/images/products/luxury-organza-shrug-style-abaya/luxury-organza-shrug-style-abaya-ivory.webp",
+              "from": "AB-234-04.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 221052,
+              "quality": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "AB-233",
+      "slug": "elegant-shrug-style-kaftan-abaya",
+      "colours": [
+        {
+          "name": "Wine",
+          "hex": "#3b091a",
+          "images": [
+            {
+              "src": "/images/products/elegant-shrug-style-kaftan-abaya/elegant-shrug-style-kaftan-abaya-wine.webp",
+              "from": "AB-233-01.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 145086,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Navy Blue",
+          "hex": "#1b2039",
+          "images": [
+            {
+              "src": "/images/products/elegant-shrug-style-kaftan-abaya/elegant-shrug-style-kaftan-abaya-navy-blue.webp",
+              "from": "AB-233-02.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 151582,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Dark Grey",
+          "hex": "#2e2f3b",
+          "images": [
+            {
+              "src": "/images/products/elegant-shrug-style-kaftan-abaya/elegant-shrug-style-kaftan-abaya-dark-grey.webp",
+              "from": "AB-233-03.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 128790,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Biscuit",
+          "hex": "#815e57",
+          "images": [
+            {
+              "src": "/images/products/elegant-shrug-style-kaftan-abaya/elegant-shrug-style-kaftan-abaya-biscuit.webp",
+              "from": "AB-233-04.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 152838,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Mehndi Green",
+          "hex": "#112422",
+          "images": [
+            {
+              "src": "/images/products/elegant-shrug-style-kaftan-abaya/elegant-shrug-style-kaftan-abaya-mehndi-green.webp",
+              "from": "AB-233-05.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 141104,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Teal Blue",
+          "hex": "#01334d",
+          "images": [
+            {
+              "src": "/images/products/elegant-shrug-style-kaftan-abaya/elegant-shrug-style-kaftan-abaya-teal-blue.webp",
+              "from": "AB-233-06.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 166096,
+              "quality": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "AB-222",
+      "slug": "elegant-coat-set",
+      "colours": [
+        {
+          "name": "Coffee",
+          "hex": "#281b1a",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-coffee-1.webp",
+              "from": "AB-222-01.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 109890,
+              "quality": 88
+            },
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-coffee-2.webp",
+              "from": "AB-222-02.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 135064,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Mehndi Green",
+          "hex": "#1b2a27",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-mehndi-green.webp",
+              "from": "AB-222-03.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 131164,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Teal Blue",
+          "hex": "#033d5b",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-teal-blue.webp",
+              "from": "AB-222-04.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 135110,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Dusty Grey",
+          "hex": "#353b53",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-dusty-grey.webp",
+              "from": "AB-222-05.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 153306,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Black",
+          "hex": "#19181e",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-black.webp",
+              "from": "AB-222-06.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 117254,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Biscuit",
+          "hex": "#966a61",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-biscuit.webp",
+              "from": "AB-222-07.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 131036,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Navy Blue",
+          "hex": "#14162d",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-navy-blue.webp",
+              "from": "AB-222-08.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 119522,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Wine",
+          "hex": "#390c19",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-wine.webp",
+              "from": "AB-222-09.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 116676,
+              "quality": 88
+            }
+          ]
+        },
+        {
+          "name": "Dark Grey",
+          "hex": "#28313d",
+          "images": [
+            {
+              "src": "/images/products/elegant-coat-set/elegant-coat-set-dark-grey.webp",
+              "from": "AB-222-10.png",
+              "labelsRemoved": true,
+              "width": 1086,
+              "height": 1448,
+              "bytes": 120358,
+              "quality": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "HQ-ST-001",
+      "slug": "embroidered-sleeve-skirt-top-set",
+      "colours": [
+        {
+          "name": "Navy/Burgundy",
+          "hex": "#2c354a",
+          "images": [
+            {
+              "src": "/images/products/embroidered-sleeve-skirt-top-set/embroidered-sleeve-skirt-top-set-navy-burgundy.webp",
+              "from": "HQ-ST-001-01.png",
+              "labelsRemoved": false,
+              "width": 1600,
+              "height": 1600,
+              "bytes": 200866,
+              "quality": 88
+            }
+          ],
+          "hex2": "#4b2328"
+        },
+        {
+          "name": "Black/Pink",
+          "hex": "#111217",
+          "images": [
+            {
+              "src": "/images/products/embroidered-sleeve-skirt-top-set/embroidered-sleeve-skirt-top-set-black-pink.webp",
+              "from": "HQ-ST-001-02.png",
+              "labelsRemoved": false,
+              "width": 1600,
+              "height": 1600,
+              "bytes": 201206,
+              "quality": 88
+            }
+          ],
+          "hex2": "#baa6a7"
+        },
+        {
+          "name": "Black/Black",
+          "hex": "#101117",
+          "images": [
+            {
+              "src": "/images/products/embroidered-sleeve-skirt-top-set/embroidered-sleeve-skirt-top-set-black-black.webp",
+              "from": "HQ-ST-001-03.png",
+              "labelsRemoved": false,
+              "width": 1600,
+              "height": 1600,
+              "bytes": 169764,
+              "quality": 88
+            }
+          ],
+          "hex2": "#0e1118"
+        },
+        {
+          "name": "Ivory/Olive",
+          "hex": "#aca89a",
+          "images": [
+            {
+              "src": "/images/products/embroidered-sleeve-skirt-top-set/embroidered-sleeve-skirt-top-set-ivory-olive.webp",
+              "from": "HQ-ST-001-04.png",
+              "labelsRemoved": false,
+              "width": 1600,
+              "height": 1575,
+              "bytes": 232190,
+              "quality": 88
+            }
+          ],
+          "hex2": "#464823"
+        },
+        {
+          "name": "Tan/Dark Brown",
+          "hex": "#9b876f",
+          "images": [
+            {
+              "src": "/images/products/embroidered-sleeve-skirt-top-set/embroidered-sleeve-skirt-top-set-tan-dark-brown.webp",
+              "from": "HQ-ST-001-05.png",
+              "labelsRemoved": false,
+              "width": 1600,
+              "height": 1591,
+              "bytes": 204802,
+              "quality": 88
+            }
+          ],
+          "hex2": "#2d1a19"
+        },
+        {
+          "name": "Dark Green/Ivory",
+          "hex": "#21251f",
+          "images": [
+            {
+              "src": "/images/products/embroidered-sleeve-skirt-top-set/embroidered-sleeve-skirt-top-set-dark-green-ivory.webp",
+              "from": "HQ-ST-001-06.png",
+              "labelsRemoved": false,
+              "width": 1600,
+              "height": 1588,
+              "bytes": 242412,
+              "quality": 86
+            }
+          ],
+          "hex2": "#c6beaa"
+        }
+      ]
+    },
+    {
+      "code": "HQ-EID-001",
+      "slug": "eid-arrival-custom-inner-shrug-skirt-set",
+      "colours": []
+    },
+    {
+      "code": "HQ-ST-002",
+      "slug": "embroidery-skirt-top-with-inner",
+      "colours": []
+    }
+  ]
+}

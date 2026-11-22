@@ -52,3 +52,19 @@ prompt
 server.log
 # Skills directory
 /skills/
+.vercel
+.env*
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and build files
+node_modules/
+.next/
+dist/
+build/
+
+# Local logs
+*.log

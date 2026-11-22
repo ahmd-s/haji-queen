@@ -1,0 +1,18 @@
+# Secrets / local-only (this file replaces .gitignore for uploads).
+.env
+.env.*
+node_modules
+.next
+
+# Not needed by the deployed site — keeps the upload small.
+catalogue_download
+download
+upload
+examples
+tests
+mini-services
+scripts
+db
+.zscripts
+*.log
+dev.pid

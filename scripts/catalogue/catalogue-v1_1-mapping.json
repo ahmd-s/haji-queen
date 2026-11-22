@@ -1,0 +1,60 @@
+{
+  "_note": "Master Product Catalogue V1.1 — verified photo-to-colour mapping. Colour names are the labels printed on each supplier photo (AB-*) or the catalogue's listed colour pairs in file order (HQ-ST-001, checked visually). 'sample' = garment pixel region [x0,y0,x1,y1] used to derive the swatch colour from the photo itself; 'sample2' = second garment piece for two-tone sets.",
+  "products": [
+    {
+      "code": "AB-234",
+      "slug": "luxury-organza-shrug-style-abaya",
+      "colours": [
+        { "name": "Mauve Pink", "files": ["AB-234-01.png"], "sample": [560, 900, 660, 1000] },
+        { "name": "Taupe", "files": ["AB-234-02.png"], "sample": [560, 900, 660, 1000] },
+        { "name": "Dusty Grey", "files": ["AB-234-03.png"], "sample": [560, 900, 660, 1000] },
+        { "name": "Ivory", "files": ["AB-234-04.png"], "sample": [560, 900, 660, 1000] }
+      ],
+      "missingColours": 1
+    },
+    {
+      "code": "AB-233",
+      "slug": "elegant-shrug-style-kaftan-abaya",
+      "colours": [
+        { "name": "Wine", "files": ["AB-233-01.png"], "sample": [420, 850, 520, 950] },
+        { "name": "Navy Blue", "files": ["AB-233-02.png"], "sample": [420, 850, 520, 950] },
+        { "name": "Dark Grey", "files": ["AB-233-03.png"], "sample": [420, 850, 520, 950] },
+        { "name": "Biscuit", "files": ["AB-233-04.png"], "sample": [420, 850, 520, 950] },
+        { "name": "Mehndi Green", "files": ["AB-233-05.png"], "sample": [420, 850, 520, 950] },
+        { "name": "Teal Blue", "files": ["AB-233-06.png"], "sample": [420, 850, 520, 950] }
+      ],
+      "missingColours": 2
+    },
+    {
+      "code": "AB-222",
+      "slug": "elegant-coat-set",
+      "colours": [
+        { "name": "Coffee", "files": ["AB-222-01.png", "AB-222-02.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Mehndi Green", "files": ["AB-222-03.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Teal Blue", "files": ["AB-222-04.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Dusty Grey", "files": ["AB-222-05.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Black", "files": ["AB-222-06.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Biscuit", "files": ["AB-222-07.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Navy Blue", "files": ["AB-222-08.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Wine", "files": ["AB-222-09.png"], "sample": [480, 950, 560, 1010] },
+        { "name": "Dark Grey", "files": ["AB-222-10.png"], "sample": [480, 950, 560, 1010] }
+      ],
+      "missingColours": 0
+    },
+    {
+      "code": "HQ-ST-001",
+      "slug": "embroidered-sleeve-skirt-top-set",
+      "colours": [
+        { "name": "Navy/Burgundy", "files": ["HQ-ST-001-01.png"], "sample": [600, 520, 700, 640], "sample2": [1150, 900, 1300, 1050] },
+        { "name": "Black/Pink", "files": ["HQ-ST-001-02.png"], "sample": [600, 520, 700, 640], "sample2": [1150, 900, 1300, 1050] },
+        { "name": "Black/Black", "files": ["HQ-ST-001-03.png"], "sample": [600, 520, 700, 640], "sample2": [1150, 900, 1300, 1050] },
+        { "name": "Ivory/Olive", "files": ["HQ-ST-001-04.png"], "sample": [600, 520, 700, 640], "sample2": [1150, 900, 1300, 1050] },
+        { "name": "Tan/Dark Brown", "files": ["HQ-ST-001-05.png"], "sample": [600, 520, 700, 640], "sample2": [1150, 900, 1300, 1050] },
+        { "name": "Dark Green/Ivory", "files": ["HQ-ST-001-06.png"], "sample": [600, 520, 700, 640], "sample2": [1150, 900, 1300, 1050] }
+      ],
+      "missingColours": 0
+    },
+    { "code": "HQ-EID-001", "slug": "eid-arrival-custom-inner-shrug-skirt-set", "colours": [], "photosPending": true },
+    { "code": "HQ-ST-002", "slug": "embroidery-skirt-top-with-inner", "colours": [], "photosPending": true }
+  ]
+}

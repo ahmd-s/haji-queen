@@ -1,6 +1,15 @@
 /** Shared types used across server data layer and client components. */
 
-export type ColorOption = { name: string; hex: string };
+export type ColorOption = {
+  name: string;
+  hex: string;
+  /** Second tone for two-piece sets (e.g. skirt / top). */
+  hex2?: string;
+  /** Photos of this exact colour; the gallery jumps to these on selection. */
+  images?: string[];
+  /** false = shown but not purchasable. Defaults to true. */
+  available?: boolean;
+};
 
 export type ProductDTO = {
   id: string;
@@ -20,6 +29,15 @@ export type ProductDTO = {
   featured: boolean;
   stock: number;
   inStock: boolean;
+  /** false = selling price pending approval; `price` must not be displayed. */
+  priceConfirmed: boolean;
+  trackStock: boolean;
+  availability: string;
+  sizeNotes: string | null;
+  /** Price confirmed, sizes known, available — see lib/availability. */
+  purchasable: boolean;
+  /** Only true for admin previews of unpublished products. */
+  preview?: boolean;
 };
 
 export type CategoryDTO = {
