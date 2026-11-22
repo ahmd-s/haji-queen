@@ -7,6 +7,8 @@ import { useWishlist } from "@/store/wishlist-store";
 import { useCart } from "@/store/cart-store";
 import { formatINR } from "@/lib/money";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { toast } from "@/hooks/use-toast";
+import { isVariantPurchasable } from "@/lib/availability";
 import type { ProductDTO } from "@/lib/types";
 
 export default function WishlistPage() {
@@ -21,20 +23,33 @@ export default function WishlistPage() {
       const res = await fetch(`/api/products?search=${encodeURIComponent(item.name)}&limit=10`);
       const data = await res.json();
       const product = (data.products as ProductDTO[]).find((p) => p.id === item.productId);
-      if (!product || product.stock <= 0) {
+      if (!product) {
         remove(item.productId);
         return;
       }
+      const variant = product.variants.find((v) =>
+        isVariantPurchasable(product, v.size, v.color)
+      );
+      if (!variant) {
+        // Pending prices, missing variants and sold-out options stay in the
+        // wishlist — they must never be pushed into the cart.
+        toast({
+          title: "Not ready for the bag yet",
+          description: product.unavailableReason ?? "Please enquire about this piece.",
+        });
+        return;
+      }
+      const colour = product.colors.find((c) => c.name === variant.color);
       addToCart({
         productId: product.id,
         slug: product.slug,
         name: product.name,
-        image: product.images[0] ?? item.image,
+        image: colour?.images?.[0] ?? product.images[0] ?? item.image,
         price: product.price,
-        size: product.sizes[0] ?? "M",
-        color: product.colors[0]?.name ?? "As shown",
+        size: variant.size,
+        color: variant.color,
         quantity: 1,
-        maxStock: Math.max(product.stock, 1),
+        maxStock: product.trackStock ? variant.stock : 10,
       });
     } catch {
       // network issue — leave wishlist untouched
@@ -76,7 +91,7 @@ export default function WishlistPage() {
                   {item.name}
                 </h3>
                 <p className="mt-0.5 text-[13.5px] font-semibold text-espresso/80">
-                  {formatINR(item.price)}
+                  {item.price > 0 ? formatINR(item.price) : "Price Pending"}
                 </p>
               </Link>
               <div className="mt-3 flex items-center gap-2">

@@ -30,13 +30,18 @@ type AdminProduct = {
   source: "HQ_ORIGINAL" | "TRUSTED_SUPPLIER";
   price: number;
   compareAtPrice: number | null;
-  colors: { name: string; hex: string }[];
+  colors: { name: string; hex: string; hex2?: string; images?: string[]; available?: boolean }[];
   sizes: string[];
   images: string[];
   badge: string | null;
   featured: boolean;
   visible: boolean;
   stock: number;
+  priceConfirmed: boolean;
+  trackStock: boolean;
+  availability: string;
+  catalogueBatch: string | null;
+  reviewNotes: { field: string; note: string }[];
   supplierEntry: { supplierName: string; wholesalePrice: number; markupPct: number } | null;
 };
 
@@ -70,7 +75,8 @@ export default function AdminProductsPage() {
 
   /** A product is "pending approval" while hidden AND missing essentials
    *  (selling price or images) — e.g. freshly imported catalogue rows. */
-  const needsApproval = (p: AdminProduct) => !p.visible && (p.price <= 0 || p.images.length === 0);
+  const needsApproval = (p: AdminProduct) =>
+    (!p.visible || !p.priceConfirmed) && (p.price <= 0 || p.images.length === 0);
 
   const visibleProducts = useMemo(() => {
     if (filter === "all") return products;
@@ -118,7 +124,8 @@ export default function AdminProductsPage() {
   };
 
   const toggleVisible = async (p: AdminProduct) => {
-    if (!p.visible && needsApproval(p)) {
+    const enquiryOnlyCatalogue = !p.priceConfirmed && p.catalogueBatch === "MASTER_V1_1";
+    if (!p.visible && needsApproval(p) && !enquiryOnlyCatalogue) {
       toast({
         title: "Cannot publish — pending approval",
         description: p.price <= 0
@@ -244,22 +251,37 @@ export default function AdminProductsPage() {
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium text-espresso">{formatINR(p.price)}</td>
+                  <td className="px-4 py-3 font-medium text-espresso">
+                    {p.priceConfirmed && p.price > 0 ? formatINR(p.price) : "Price pending"}
+                  </td>
                   <td className="px-4 py-3 text-espresso/80">{p.stock}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {p.featured && (
                         <span className="bg-gold/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-gold-deep">Featured</span>
                       )}
+                      {!p.priceConfirmed && (
+                        <span className="border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-gold-deep">
+                          Enquiry only
+                        </span>
+                      )}
                       {needsApproval(p) && (
                         <span className="border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-gold-deep">
                           Pending approval
                         </span>
                       )}
+                      {p.reviewNotes.length > 0 && (
+                        <span
+                          title={p.reviewNotes.map((n) => `${n.field}: ${n.note}`).join("\n")}
+                          className="cursor-help border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase text-taupe"
+                        >
+                          {p.reviewNotes.length} review notes
+                        </span>
+                      )}
                       {!p.visible && (
                         <span className="bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive">Hidden</span>
                       )}
-                      {p.visible && p.stock === 0 && (
+                      {p.visible && p.trackStock && p.stock === 0 && (
                         <span className="bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-destructive">Out of stock</span>
                       )}
                     </div>

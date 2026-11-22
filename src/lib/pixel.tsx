@@ -10,10 +10,19 @@ import { META_PIXEL_ID } from "@/lib/site";
 
 export const CONSENT_KEY = "hq-cookie-consent"; // "granted" | "denied"
 
+/** Minimal shape of the Meta pixel bootstrap function we rely on. */
+type Fbq = ((...args: unknown[]) => void) & {
+  push: (...args: unknown[]) => void;
+  loaded: boolean;
+  version: string;
+  queue: unknown[];
+  callMethod?: (...args: unknown[]) => void;
+};
+
 type PixelQueue = {
-  queue: string[][];
+  queue: unknown[][];
   flushed: boolean;
-  fbq?: (...args: unknown[]) => void;
+  fbq?: Fbq;
 };
 
 const g = globalThis as unknown as { __hqPixel?: PixelQueue };
@@ -46,7 +55,7 @@ export function flushPixel() {
   if (s.flushed) return;
   if (!hasConsent()) return;
 
-  const w = window as unknown as { fbq?: (...args: unknown[]) => void; _fbq?: unknown };
+  const w = window as unknown as { fbq?: Fbq; _fbq?: Fbq };
   if (!w.fbq) {
     const script = document.createElement("script");
     script.async = true;
@@ -55,22 +64,21 @@ export function flushPixel() {
     document.head.appendChild(script);
     // Standard pixel bootstrap
     const anyWin = window as unknown as Record<string, unknown>;
-    const fbq: (...args: unknown[]) => void = function (...args: unknown[]) {
-      const f = fbq as unknown as { callMethod?: (...a: unknown[]) => void };
+    const fbq = function (...args: unknown[]) {
+      const f = fbq as Fbq;
       if (typeof f.callMethod === "function") {
         f.callMethod(...args);
       } else {
-        s.queue.push(args as string[]);
+        s.queue.push(args);
       }
-    } as (...args: unknown[]) => void;
+    } as Fbq;
     fbq.push = fbq;
     fbq.loaded = true;
     fbq.version = "2.0";
-    fbq.queue = [] as unknown[];
+    fbq.queue = [];
     anyWin.fbq = fbq;
     anyWin._fbq = fbq;
     s.fbq = fbq;
-    // @ts-expect-error standard pixel API
     fbq("init", META_PIXEL_ID);
   }
   s.flushed = true;

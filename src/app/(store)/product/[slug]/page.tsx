@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ProductDetail } from "@/components/product/product-detail";
 import { ProductCard } from "@/components/product/product-card";
 import { Reveal } from "@/components/motion/reveal";
-import { getProductBySlug, getRelatedProducts } from "@/lib/data";
+import { getContent, getProductBySlug, getRelatedProducts } from "@/lib/data";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -33,10 +33,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const related = await getRelatedProducts(product, 4);
+  const [related, contact] = await Promise.all([
+    getRelatedProducts(product, 4),
+    getContent<{ email?: string }>("contact", {}),
+  ]);
 
-  // Structured product data (SEO readiness)
-  const jsonLd = {
+  // Structured product data (SEO readiness). Pending-price products are not
+  // advertised with an offer; unconfirmed prices never reach search engines.
+  const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
@@ -44,7 +48,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     image: product.images.map((i) => `${SITE_URL}${i}`),
     brand: { "@type": "Brand", name: SITE_NAME },
     category: product.category.name,
-    offers: {
+  };
+  if (product.priceConfirmed && product.price > 0) {
+    jsonLd.offers = {
       "@type": "Offer",
       url: `${SITE_URL}/product/${product.slug}`,
       priceCurrency: "INR",
@@ -53,16 +59,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       seller: { "@type": "Organization", name: SITE_NAME },
-    },
-  };
+    };
+  }
+  const safeJsonLd = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <ProductDetail product={product} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd }} />
+      <ProductDetail product={product} enquiryEmail={contact.email} />
 
       {related.length > 0 && (
         <section className="border-t border-border bg-cream/40 py-16 lg:py-20" aria-labelledby="related-heading">

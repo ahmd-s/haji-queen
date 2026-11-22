@@ -26,7 +26,17 @@ const productUpdateSchema = z.object({
   // guard below blocks any visible product without a confirmed price.
   price: z.number().min(0),
   compareAtPrice: z.number().positive().nullable().optional(),
-  colors: z.array(z.object({ name: z.string().min(1), hex: z.string().min(4) })).max(12),
+  colors: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        hex: z.string().min(4),
+        hex2: z.string().optional(),
+        images: z.array(z.string()).optional(),
+        available: z.boolean().optional(),
+      })
+    )
+    .max(12),
   sizes: z.array(z.string().min(1).max(10)).max(12),
   images: z.array(z.string().min(1)).max(12),
   badge: z.string().trim().max(30).optional().or(z.literal("")),
@@ -64,9 +74,12 @@ export async function PUT(req: NextRequest, ctx: RouteCtx) {
   if (!category) return NextResponse.json({ error: "Invalid category." }, { status: 400 });
 
   // ── Publish approval guard ────────────────────────────────────────────
-  // A product may be saved hidden in its pending state (price 0, no images),
-  // but it cannot go live until every customer-facing essential is approved.
-  if (d.visible) {
+  // Genuine catalogue rows are intentionally live as enquiry-only listings
+  // while their selling price is pending. Everything else still needs the
+  // full publish checklist before it can go live.
+  const enquiryOnlyCatalogue =
+    !existing.priceConfirmed && existing.catalogueBatch === "MASTER_V1_1";
+  if (d.visible && !enquiryOnlyCatalogue) {
     const blockers: string[] = [];
     if (d.price <= 0) blockers.push("a confirmed selling price");
     if (d.images.length === 0) blockers.push("at least one product image");

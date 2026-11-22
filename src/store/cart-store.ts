@@ -34,20 +34,33 @@ export const useCart = create<CartState>()(
       isOpen: false,
       lastAdded: null,
       add: (item) => {
+        // Pending-price pieces are enquiry-only and must never reach checkout.
+        if (item.price <= 0) return;
         const key = `${item.productId}|${item.size}|${item.color}`;
         const existing = get().items.find((i) => i.key === key);
         if (existing) {
+          const limit = Math.max(1, Math.min(existing.maxStock, item.maxStock));
           set({
             items: get().items.map((i) =>
               i.key === key
-                ? { ...i, quantity: Math.min(i.quantity + item.quantity, Math.max(item.maxStock, 1)) }
+                ? {
+                    ...i,
+                    image: item.image || i.image,
+                    price: item.price,
+                    maxStock: limit,
+                    quantity: Math.min(i.quantity + item.quantity, limit),
+                  }
                 : i
             ),
             isOpen: true,
             lastAdded: key,
           });
         } else {
-          set({ items: [...get().items, { ...item, key }], isOpen: true, lastAdded: key });
+          set({
+            items: [...get().items, { ...item, quantity: Math.min(item.quantity, Math.max(item.maxStock, 1)), key }],
+            isOpen: true,
+            lastAdded: key,
+          });
         }
       },
       remove: (key) => set({ items: get().items.filter((i) => i.key !== key) }),

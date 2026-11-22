@@ -23,7 +23,10 @@ export function ProductCard({
   const toggle = useWishlist((s) => s.toggle);
   const wishlisted = useWishlist((s) => s.items.some((i) => i.productId === product.id));
 
-  const img = hover && product.images[1] ? product.images[1] : product.images[0];
+  const firstColour = product.colors[0];
+  const gallery = firstColour?.images?.length ? firstColour.images : product.images;
+  const img = hover && gallery[1] ? gallery[1] : gallery[0];
+  const hasPhoto = Boolean(img);
 
   const onWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,7 +51,7 @@ export function ProductCard({
     >
       <Link href={`/product/${product.slug}`} className="block" aria-label={product.name}>
         <div className="img-zoom relative aspect-[3/4] w-full bg-cream">
-          {img && (
+          {hasPhoto ? (
             <Image
               src={img}
               alt={product.name}
@@ -57,6 +60,11 @@ export function ProductCard({
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover"
             />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <span className="h-px w-7 bg-gold" />
+              <p className="font-display text-[15px] text-espresso">Photographs coming soon</p>
+            </div>
           )}
 
           {product.badge && (
@@ -64,7 +72,12 @@ export function ProductCard({
               {product.badge}
             </span>
           )}
-          {!product.inStock && (
+          {!product.priceConfirmed && (
+            <span className="absolute bottom-3 left-3 bg-ivory/95 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-gold-deep">
+              {hasPhoto ? "Enquiry Only" : "Coming Soon"}
+            </span>
+          )}
+          {product.priceConfirmed && !product.inStock && (
             <span className="absolute left-3 top-3 bg-espresso/90 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-ivory">
               Sold Out
             </span>
@@ -78,12 +91,18 @@ export function ProductCard({
           <h3 className="mt-1 font-display text-[19px] leading-snug text-espresso transition-colors group-hover:text-gold">
             {product.name}
           </h3>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <p className="text-[14px] font-semibold text-espresso">{formatINR(product.price)}</p>
-            {product.compareAtPrice && product.compareAtPrice > product.price && (
-              <p className="text-[12.5px] text-taupe line-through">
-                {formatINR(product.compareAtPrice)}
-              </p>
+          <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+            {product.priceConfirmed && product.price > 0 ? (
+              <>
+                <p className="text-[14px] font-semibold text-espresso">{formatINR(product.price)}</p>
+                {product.compareAtPrice && product.compareAtPrice > product.price && (
+                  <p className="text-[12.5px] text-taupe line-through">
+                    {formatINR(product.compareAtPrice)}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-[13px] font-semibold text-gold-deep">Price Pending</p>
             )}
           </div>
           {product.colors.length > 0 && (
@@ -93,7 +112,11 @@ export function ProductCard({
                   key={c.name}
                   title={c.name}
                   className="h-3 w-3 rounded-full border border-espresso/15"
-                  style={{ backgroundColor: c.hex }}
+                  style={{
+                    background: c.hex2
+                      ? `linear-gradient(135deg, ${c.hex} 0 50%, ${c.hex2} 50% 100%)`
+                      : c.hex,
+                  }}
                 />
               ))}
               {product.colors.length > 4 && (

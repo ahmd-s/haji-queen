@@ -39,7 +39,9 @@ type FormState = {
   consultationDate: string;
   consultationTime: string;
   consent: boolean;
-} & Partial<Record<(typeof MEASUREMENT_FIELDS)[number]["key"] | "otherMeasurements", string>>;
+} & Partial<
+  Record<(typeof MEASUREMENT_FIELDS)[number]["key"] | "otherMeasurements" | "referenceImageUrl", string>
+>;
 
 const INITIAL: FormState = {
   fullName: "",

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProducts } from "@/lib/data";
 
+function numericParam(raw: string | null): number | undefined {
+  if (raw === null || raw.trim() === "") return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 /**
  * Public catalogue API.
  * SECURITY: returns retail data only — never wholesale prices, supplier
@@ -15,12 +21,12 @@ export async function GET(req: NextRequest) {
     search: sp.get("search") || undefined,
     colors: sp.getAll("color").filter(Boolean),
     sizes: sp.getAll("size").filter(Boolean),
-    minPrice: sp.get("minPrice") ? Number(sp.get("minPrice")) : undefined,
-    maxPrice: sp.get("maxPrice") ? Number(sp.get("maxPrice")) : undefined,
+    minPrice: numericParam(sp.get("minPrice")),
+    maxPrice: numericParam(sp.get("maxPrice")),
     inStock: sp.get("inStock") === "true",
     sort: (sp.get("sort") as "newest" | "price-asc" | "price-desc" | "popular") || undefined,
     featuredOnly: sp.get("featured") === "true",
-    limit: limitParam ? Math.min(Number(limitParam) || 12, 60) : undefined,
+    limit: limitParam ? Math.min(Math.max(1, Math.trunc(numericParam(limitParam) ?? 12)), 60) : undefined,
   });
   return NextResponse.json(
     { products },

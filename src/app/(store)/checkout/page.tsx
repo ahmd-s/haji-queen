@@ -83,6 +83,9 @@ export default function CheckoutPage() {
   );
 
   const validate = (): string | null => {
+    if (items.some((i) => i.price <= 0)) {
+      return "Your bag contains a piece with a pending price. Please enquire about it before checkout.";
+    }
     if (form.customerName.trim().length < 2) return "Please enter your full name.";
     if (!/^[+0-9][0-9\s-]{7,15}$/.test(form.phone.trim())) return "Please enter a valid mobile number.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "Please enter a valid email address.";

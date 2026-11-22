@@ -1,7 +1,13 @@
 import { db } from "@/lib/db";
 import { parseJson, type CategoryDTO, type ColorOption, type ProductDTO } from "@/lib/types";
-import { isPurchasable } from "@/lib/availability";
+import { isPurchasable, unavailableReason, type VariantStock } from "@/lib/availability";
 import type { Category, Prisma, Product } from "@prisma/client";
+
+/** Public-facing product include — internal supplier fields are never selected. */
+const publicProductInclude = {
+  category: true,
+  variants: { select: { size: true, color: true, stock: true } },
+} as const;
 
 /**
  * Server-side data access for the storefront.
@@ -9,7 +15,9 @@ import type { Category, Prisma, Product } from "@prisma/client";
  * margins — those live only in admin-scoped queries.
  */
 
-export function toProductDTO(p: Product & { category: Category }): ProductDTO {
+export function toProductDTO(
+  p: Product & { category: Category; variants?: VariantStock[] }
+): ProductDTO {
   const sizes = parseJson<string[]>(p.sizes, []);
   const colors = parseJson<ColorOption[]>(p.colors, []).map((c) => ({
     name: c.name,
@@ -41,7 +49,9 @@ export function toProductDTO(p: Product & { category: Category }): ProductDTO {
     trackStock: p.trackStock,
     availability: p.availability,
     sizeNotes: p.sizeNotes,
-    purchasable: isPurchasable({ ...p, sizes }),
+    purchasable: isPurchasable({ ...p, sizes, variants: p.variants }),
+    unavailableReason: unavailableReason({ ...p, sizes, variants: p.variants }),
+    variants: (p.variants ?? []).map((v) => ({ size: v.size, color: v.color, stock: v.stock })),
   };
 }
 
@@ -59,7 +69,7 @@ export type ProductQuery = {
 };
 
 export async function getProducts(q: ProductQuery = {}): Promise<ProductDTO[]> {
-  const where: Parameters<typeof db.product.findMany>[0]["where"] = { visible: true };
+  const where: Prisma.ProductWhereInput = { visible: true };
   if (q.category) where.category = { slug: q.category };
   if (q.featuredOnly) where.featured = true;
   if (q.search) {
@@ -100,7 +110,7 @@ export async function getProducts(q: ProductQuery = {}): Promise<ProductDTO[]> {
   const rows = await db.product.findMany({
     where,
     orderBy: [orderBy],
-    include: { category: true },
+    include: publicProductInclude,
     ...(q.limit ? { take: q.limit } : {}),
   });
 
@@ -121,7 +131,7 @@ export async function getProductBySlug(
 ): Promise<ProductDTO | null> {
   const row = await db.product.findUnique({
     where: { slug },
-    include: { category: true },
+    include: publicProductInclude,
   });
   if (!row) return null;
   // Unpublished products are only returned for a verified admin preview.
@@ -132,14 +142,14 @@ export async function getProductBySlug(
 export async function getRelatedProducts(product: ProductDTO, limit = 4): Promise<ProductDTO[]> {
   const rows = await db.product.findMany({
     where: { visible: true, categoryId: { not: undefined }, category: { slug: product.category.slug }, id: { not: product.id } },
-    include: { category: true },
+    include: publicProductInclude,
     take: limit,
     orderBy: { popularity: "desc" },
   });
   if (rows.length >= limit) return rows.map(toProductDTO);
   const fill = await db.product.findMany({
     where: { visible: true, featured: true, id: { notIn: [product.id, ...rows.map((r) => r.id)] } },
-    include: { category: true },
+    include: publicProductInclude,
     take: limit - rows.length,
   });
   return [...rows, ...fill].map(toProductDTO);

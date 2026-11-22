@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { shippingFor } from "@/lib/site";
+import {
+  isVariantPurchasable,
+  unavailableReason,
+  variantUnavailableReason,
+} from "@/lib/availability";
 
 /**
  * Order creation. Validates server-side, re-prices every line from the
@@ -85,15 +90,26 @@ export async function POST(req: NextRequest) {
         if (!product || !product.visible) {
           throw new Error(`A product in your bag is no longer available.`);
         }
-        const variant = product.variants.find(
-          (v) => v.size === item.size && v.color === item.color
-        );
-        if (!variant) throw new Error(`Please choose an available size and colour for ${product.name}.`);
-        if (variant.stock < item.quantity) {
+
+        const sizes = JSON.parse(product.sizes || "[]") as string[];
+        const colours = JSON.parse(product.colors || "[]") as { name: string }[];
+        // Older cart entries used "As shown" where a product has no colours.
+        const requestedColor =
+          item.color === "As shown" && colours.length === 0 ? "" : item.color;
+        const sellable = { ...product, sizes };
+        const productReason = unavailableReason(sellable);
+        if (productReason) {
+          throw new Error(`${product.name}: ${productReason}. Please enquire instead.`);
+        }
+        if (!isVariantPurchasable(sellable, item.size, requestedColor)) {
           throw new Error(
-            `Only ${variant.stock} left of ${product.name} (${item.color}, ${item.size}). Please adjust the quantity.`
+            variantUnavailableReason(sellable, item.size, requestedColor) ??
+              `Please choose an available size and colour for ${product.name}.`
           );
         }
+        const variant = product.variants.find(
+          (v) => v.size === item.size && v.color === requestedColor
+        )!;
         const images = JSON.parse(product.images || "[]") as string[];
         lines.push({
           productId: product.id,
@@ -101,19 +117,31 @@ export async function POST(req: NextRequest) {
           productSlug: product.slug,
           imageUrl: images[0] ?? null,
           size: item.size,
-          color: item.color,
+          color: requestedColor,
           quantity: item.quantity,
           unitPrice: product.price,
           lineTotal: product.price * item.quantity,
         });
-        await tx.productVariant.update({
-          where: { id: variant.id },
-          data: { stock: { decrement: item.quantity } },
-        });
-        await tx.product.update({
-          where: { id: product.id },
-          data: { stock: { decrement: item.quantity }, popularity: { increment: item.quantity } },
-        });
+        if (product.trackStock) {
+          // Conditional update prevents two checkouts claiming the last unit.
+          const claimed = await tx.productVariant.updateMany({
+            where: { id: variant.id, stock: { gte: item.quantity } },
+            data: { stock: { decrement: item.quantity } },
+          });
+          if (claimed.count !== 1) {
+            throw new Error(`${product.name} (${requestedColor || "as shown"}, ${item.size}) just sold out. Please adjust your bag.`);
+          }
+          await tx.product.update({
+            where: { id: product.id },
+            data: { stock: { decrement: item.quantity }, popularity: { increment: item.quantity } },
+          });
+        } else {
+          // Pre-order / enquiry catalogue rows have no quantities to decrement.
+          await tx.product.update({
+            where: { id: product.id },
+            data: { popularity: { increment: item.quantity } },
+          });
+        }
       }
 
       const subtotal = lines.reduce((n, l) => n + l.lineTotal, 0);

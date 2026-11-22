@@ -11,6 +11,12 @@ export type ColorOption = {
   available?: boolean;
 };
 
+export type ProductVariantDTO = {
+  size: string;
+  color: string;
+  stock: number;
+};
+
 export type ProductDTO = {
   id: string;
   slug: string;
@@ -36,6 +42,10 @@ export type ProductDTO = {
   sizeNotes: string | null;
   /** Price confirmed, sizes known, available — see lib/availability. */
   purchasable: boolean;
+  /** Customer-facing reason checkout is unavailable (null when purchasable). */
+  unavailableReason: string | null;
+  /** Exact size/colour options created in the database (no internal SKUs). */
+  variants: ProductVariantDTO[];
   /** Only true for admin previews of unpublished products. */
   preview?: boolean;
 };

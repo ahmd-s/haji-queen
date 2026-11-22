@@ -112,7 +112,7 @@ export function CartDrawer() {
                                 {item.name}
                               </Link>
                               <p className="mt-1 text-[12px] uppercase tracking-[0.12em] text-taupe">
-                                {item.color} · Size {item.size}
+                                {item.color || "As shown"} · Size {item.size}
                               </p>
                             </div>
                             <button

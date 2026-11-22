@@ -9,7 +9,8 @@ import { SITE_URL } from "@/lib/site";
  */
 export async function GET() {
   const products = await db.product.findMany({
-    where: { visible: true },
+    // Never publish unconfirmed prices or internal catalogue rows to Meta.
+    where: { visible: true, priceConfirmed: true, price: { gt: 0 } },
     include: { category: true },
     orderBy: { createdAt: "desc" },
   });

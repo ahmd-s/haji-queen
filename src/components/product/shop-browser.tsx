@@ -43,11 +43,15 @@ export function ShopBrowser({ categories, lockedCategory, initialSearch }: Props
   const firstLoad = useRef(true);
 
   const colorOptions = useMemo(() => {
-    const seen = new Map<string, string>();
+    const seen = new Map<string, { hex: string; hex2?: string }>();
     for (const p of products) {
-      for (const c of p.colors) if (!seen.has(c.name)) seen.set(c.name, c.hex);
+      for (const c of p.colors) {
+        if (!seen.has(c.name)) seen.set(c.name, { hex: c.hex, hex2: c.hex2 });
+      }
     }
-    return [...seen.entries()].map(([name, hex]) => ({ name, hex })).sort((a, b) => a.name.localeCompare(b.name));
+    return [...seen.entries()]
+      .map(([name, value]) => ({ name, ...value }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [products]);
 
   const fetchProducts = useCallback(
@@ -158,7 +162,11 @@ export function ShopBrowser({ categories, lockedCategory, initialSearch }: Props
               >
                 <span
                   className="h-4 w-4 rounded-full border border-espresso/20"
-                  style={{ backgroundColor: c.hex }}
+                  style={{
+                    background: c.hex2
+                      ? `linear-gradient(135deg, ${c.hex} 0 50%, ${c.hex2} 50% 100%)`
+                      : c.hex,
+                  }}
                 />
                 {c.name}
               </button>

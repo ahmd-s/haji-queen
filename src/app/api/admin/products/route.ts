@@ -18,7 +18,17 @@ const productSchema = z.object({
   source: z.enum(["HQ_ORIGINAL", "TRUSTED_SUPPLIER"]),
   price: z.number().positive(),
   compareAtPrice: z.number().positive().nullable().optional(),
-  colors: z.array(z.object({ name: z.string().min(1), hex: z.string().min(4) })).max(12),
+  colors: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        hex: z.string().min(4),
+        hex2: z.string().optional(),
+        images: z.array(z.string()).optional(),
+        available: z.boolean().optional(),
+      })
+    )
+    .max(12),
   sizes: z.array(z.string().min(1).max(10)).max(12),
   images: z.array(z.string().min(1)).max(8),
   badge: z.string().trim().max(30).optional().or(z.literal("")),
@@ -54,6 +64,18 @@ export async function GET(req: NextRequest) {
       featured: p.featured,
       visible: p.visible,
       stock: p.stock,
+      priceConfirmed: p.priceConfirmed,
+      trackStock: p.trackStock,
+      availability: p.availability,
+      sizeNotes: p.sizeNotes,
+      catalogueBatch: p.catalogueBatch,
+      reviewNotes: (() => {
+        try {
+          return JSON.parse(p.reviewNotes || "[]");
+        } catch {
+          return [];
+        }
+      })(),
       description: p.description,
       fabricDetails: p.fabricDetails,
       careInstructions: p.careInstructions,
