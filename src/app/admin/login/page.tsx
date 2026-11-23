@@ -37,7 +37,9 @@ function AdminLoginForm() {
         setLoading(false);
         return;
       }
-      router.push(params.get("from") || "/admin");
+      const from = params.get("from");
+      const destination = from && from.startsWith("/admin") && !from.startsWith("//") ? from : "/admin";
+      router.push(destination);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");

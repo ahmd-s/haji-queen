@@ -2,14 +2,14 @@
  * Post-image-attachment verification.
  * Run: node scripts/catalogue/qa_images.mjs
  */
-import { createHmac } from "node:crypto";
-
 const BASE = "http://localhost:3000";
-const AUTH_SECRET = process.env.AUTH_SECRET || "hq-dev-secret-change-me-3f9c2b7a8d";
-const body = Buffer.from(
-  JSON.stringify({ id: "qa-operator", email: "admin@hajiqueens.com", name: "QA", role: "SUPER_ADMIN", exp: Math.floor(Date.now() / 1000) + 600 })
-).toString("base64url");
-const COOKIE = "hq_admin_session=" + body + "." + createHmac("sha256", AUTH_SECRET).update(body).digest("base64url");
+if (!process.env.QA_ADMIN_COOKIE) {
+  throw new Error("QA_ADMIN_COOKIE must contain a real hq_admin_session cookie value.");
+}
+const cookieValue = process.env.QA_ADMIN_COOKIE;
+const COOKIE = cookieValue.startsWith("hq_admin_session=")
+  ? cookieValue
+  : `hq_admin_session=${cookieValue}`;
 
 let pass = 0, fail = 0;
 const check = (name, ok, detail = "") => {

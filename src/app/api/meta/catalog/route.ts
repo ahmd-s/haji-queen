@@ -1,27 +1,19 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { SITE_URL } from "@/lib/site";
+import { getCatalogueFeedRows } from "@/lib/services/catalogue";
 
 /**
- * Meta catalogue feed (CSV) — Phase 9 readiness.
- * Simple, schedule-friendly CSV of visible products for a future
- * Facebook/Instagram shop integration. Retail prices only.
+ * Meta catalogue feed (CSV) — confirmed, visible retail products only.
+ * The service layer enforces the same public-price rules as the storefront.
  */
 export async function GET() {
-  const products = await db.product.findMany({
-    // Never publish unconfirmed prices or internal catalogue rows to Meta.
-    where: { visible: true, priceConfirmed: true, price: { gt: 0 } },
-    include: { category: true },
-    orderBy: { createdAt: "desc" },
-  });
-
+  const products = await getCatalogueFeedRows();
   const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
   const rows: string[] = [
     "id,title,description,availability,condition,price,link,image_link,brand,product_type",
   ];
 
   for (const p of products) {
-    const images = JSON.parse(p.images || "[]") as string[];
     rows.push(
       [
         p.id,
@@ -31,9 +23,9 @@ export async function GET() {
         "new",
         `${p.price.toFixed(2)} INR`,
         `${SITE_URL}/product/${p.slug}`,
-        images[0] ? `${SITE_URL}${images[0]}` : "",
+        p.images[0] ? `${SITE_URL}${p.images[0]}` : "",
         "Haji Queens",
-        esc(p.category.name),
+        esc(p.categoryName),
       ].join(",")
     );
   }

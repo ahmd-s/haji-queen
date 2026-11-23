@@ -1,55 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
-
-/**
- * Per-product admin operations (edit / delete).
- * The UI's Edit and Delete actions post here — without this route those
- * buttons previously failed with 405/404.
- */
-
-const productUpdateSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  slug: z
-    .string()
-    .trim()
-    .min(2)
-    .max(120)
-    .regex(/^[a-z0-9-]+$/, "Slug: lowercase letters, numbers, hyphens"),
-  description: z.string().trim().min(10),
-  fabricDetails: z.string().trim().max(500).optional().or(z.literal("")),
-  careInstructions: z.string().trim().max(500).optional().or(z.literal("")),
-  categoryId: z.string().min(1),
-  source: z.enum(["HQ_ORIGINAL", "TRUSTED_SUPPLIER"]),
-  // Pending-approval products may stay at 0 while hidden, but the publish
-  // guard below blocks any visible product without a confirmed price.
-  price: z.number().min(0),
-  compareAtPrice: z.number().positive().nullable().optional(),
-  colors: z
-    .array(
-      z.object({
-        name: z.string().min(1),
-        hex: z.string().min(4),
-        hex2: z.string().optional(),
-        images: z.array(z.string()).optional(),
-        available: z.boolean().optional(),
-      })
-    )
-    .max(12),
-  sizes: z.array(z.string().min(1).max(10)).max(12),
-  images: z.array(z.string().min(1)).max(12),
-  badge: z.string().trim().max(30).optional().or(z.literal("")),
-  featured: z.boolean(),
-  visible: z.boolean(),
-  stock: z.number().int().min(0).max(999),
-});
+import { writeAudit } from "@/lib/audit";
+import { adminProductWriteSchema, assertPublishable } from "@/lib/admin-product";
+import {
+  recalculateProductStock,
+  syncProductVariants,
+  variantConflictMessage,
+} from "@/lib/services/product-admin";
+import { isPrismaUniqueError, serviceErrorResponse } from "@/lib/services/errors";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
-/** PUT — update an existing product (incl. publish/unpublish, price, images). */
+/** PUT — full owner-friendly product edit, including variants and publish state. */
 export async function PUT(req: NextRequest, ctx: RouteCtx) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
   const { id } = await ctx.params;
 
@@ -60,9 +25,9 @@ export async function PUT(req: NextRequest, ctx: RouteCtx) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
-  const parsed = productUpdateSchema.safeParse(body);
+  const parsed = adminProductWriteSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Please fix the highlighted fields.", issues: parsed.error.flatten().fieldErrors },
@@ -70,91 +35,124 @@ export async function PUT(req: NextRequest, ctx: RouteCtx) {
     );
   }
   const d = parsed.data;
-  const category = await db.category.findUnique({ where: { id: d.categoryId } });
-  if (!category) return NextResponse.json({ error: "Invalid category." }, { status: 400 });
 
-  // ── Publish approval guard ────────────────────────────────────────────
-  // Genuine catalogue rows are intentionally live as enquiry-only listings
-  // while their selling price is pending. Everything else still needs the
-  // full publish checklist before it can go live.
-  const enquiryOnlyCatalogue =
-    !existing.priceConfirmed && existing.catalogueBatch === "MASTER_V1_1";
-  if (d.visible && !enquiryOnlyCatalogue) {
-    const blockers: string[] = [];
-    if (d.price <= 0) blockers.push("a confirmed selling price");
-    if (d.images.length === 0) blockers.push("at least one product image");
-    if (d.description.trim().length < 10) blockers.push("a complete description");
-    if (blockers.length) {
+  const category = await db.category.findUnique({
+    where: { id: d.categoryId },
+    select: { id: true },
+  });
+  if (!category) {
+    return NextResponse.json(
+      { error: "Choose a valid category.", issues: { categoryId: ["Choose a category."] } },
+      { status: 400 }
+    );
+  }
+
+  if (d.slug !== existing.slug) {
+    const clash = await db.product.findUnique({
+      where: { slug: d.slug },
+      select: { id: true },
+    });
+    if (clash && clash.id !== id) {
       return NextResponse.json(
-        {
-          error: `Cannot publish — pending approval: add ${blockers.join(" and ")}. Save it hidden while you finish the review, then publish.`,
-        },
+        { error: "That web address is already used.", issues: { slug: ["Choose a different link."] } },
         { status: 400 }
       );
     }
   }
 
+  const legacyEnquiryOnly =
+    !existing.priceConfirmed && existing.catalogueBatch === "MASTER_V1_1";
   try {
-    await db.product.update({
-      where: { id },
-      data: {
-        name: d.name,
-        slug: d.slug,
-        description: d.description,
-        fabricDetails: d.fabricDetails || null,
-        careInstructions: d.careInstructions || null,
-        categoryId: d.categoryId,
-        source: d.source,
-        price: d.price,
-        compareAtPrice: d.compareAtPrice ?? null,
-        colors: JSON.stringify(d.colors),
-        sizes: JSON.stringify(d.sizes),
-        images: JSON.stringify(d.images),
-        badge: d.badge || null,
-        featured: d.featured,
-        visible: d.visible,
-        stock: d.stock,
-      },
-    });
-
-    // Keep variants in step with the edited size × colour matrix.
-    const wanted = new Set<string>();
-    for (const c of d.colors) {
-      for (const s of d.sizes) wanted.add(`${s}\u0000${c.name}`);
-    }
-    // When colours are pending (empty list), keep single-size variants keyed by size only.
-    if (d.colors.length === 0) {
-      for (const s of d.sizes) wanted.add(`${s}\u0000`);
-    }
-    const current = await db.productVariant.findMany({ where: { productId: id } });
-    const toDelete = current.filter((v) => !wanted.has(`${v.size}\u0000${v.color}`));
-    await Promise.all(toDelete.map((v) => db.productVariant.delete({ where: { id: v.id } })));
-    const have = new Set(current.map((v) => `${v.size}\u0000${v.color}`));
-    for (const key of wanted) {
-      if (have.has(key)) continue;
-      const [size, color] = key.split("\u0000");
-      await db.productVariant.create({ data: { productId: id, size, color, stock: 0 } });
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    const msg =
-      e instanceof Error && e.message.includes("Unique")
-        ? "A product with that slug already exists."
-        : "Could not update the product.";
-    return NextResponse.json({ error: msg }, { status: 400 });
+    if (d.visible) assertPublishable(d, legacyEnquiryOnly);
+  } catch (error) {
+    return serviceErrorResponse(error, "Could not validate the product.");
   }
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: {
+          name: d.name,
+          slug: d.slug,
+          description: d.description,
+          fabricDetails: d.fabricDetails || null,
+          careInstructions: d.careInstructions || null,
+          categoryId: d.categoryId,
+          source: d.source,
+          price: d.price,
+          compareAtPrice: d.compareAtPrice ?? null,
+          colors: JSON.stringify(d.colors),
+          sizes: JSON.stringify(d.sizes),
+          images: JSON.stringify(d.images),
+          sizeNotes: d.sizeNotes || null,
+          badge: d.badge || null,
+          featured: d.featured,
+          visible: d.visible,
+          priceConfirmed: d.priceConfirmed,
+          trackStock: d.trackStock,
+          availability: d.availability,
+          isEnquiryOnly: d.isEnquiryOnly,
+          customSizingAllowed: d.customSizingAllowed,
+          readyToDispatch: d.readyToDispatch,
+          preorderAllowed: d.preorderAllowed,
+          ...(d.visible && !existing.visible
+            ? { publishedAt: new Date(), publishedBy: guard.admin.id }
+            : {}),
+          ...(!d.visible ? { publishedAt: null, publishedBy: null } : {}),
+        },
+      });
+
+      await syncProductVariants(tx, id, d, existing.stock, guard.admin.id);
+      await recalculateProductStock(tx, id);
+    });
+  } catch (error) {
+    if (isPrismaUniqueError(error, "slug")) {
+      return NextResponse.json(
+        { error: "That web address is already used.", issues: { slug: ["Choose a different link."] } },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { error: variantConflictMessage(error, "Could not update the product.") },
+      { status: 400 }
+    );
+  }
+
+  await writeAudit(req, {
+    action: "PRODUCT_UPDATE",
+    entityType: "Product",
+    entityId: id,
+    metadata: {
+      slug: d.slug,
+      visible: d.visible,
+      priceConfirmed: d.priceConfirmed,
+      isEnquiryOnly: d.isEnquiryOnly,
+    },
+    actor: guard.admin,
+  });
+  return NextResponse.json({ ok: true });
 }
 
-/** DELETE — remove a product (admin action; cascade variants, keep orders). */
+/** DELETE — remove a product; order snapshots are preserved. */
 export async function DELETE(req: NextRequest, ctx: RouteCtx) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
   const { id } = await ctx.params;
 
-  const existing = await db.product.findUnique({ where: { id } });
+  const existing = await db.product.findUnique({
+    where: { id },
+    select: { id: true, name: true, slug: true },
+  });
   if (!existing) return NextResponse.json({ error: "Product not found." }, { status: 404 });
 
   await db.product.delete({ where: { id } });
+  await writeAudit(req, {
+    action: "PRODUCT_DELETE",
+    entityType: "Product",
+    entityId: id,
+    metadata: { name: existing.name, slug: existing.slug },
+    actor: guard.admin,
+  });
   return NextResponse.json({ ok: true });
 }

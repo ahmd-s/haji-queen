@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { requireAdmin } from "@/lib/auth-api";
+import { writeAudit } from "@/lib/audit";
 
 /**
  * Admin image upload — accepts multiple files per request and stores the
@@ -30,7 +31,7 @@ function safeName(name: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
 
   let form: FormData;
@@ -73,5 +74,11 @@ export async function POST(req: NextRequest) {
   if (urls.length === 0) {
     return NextResponse.json({ error: errors.join(" ") || "Upload failed." }, { status: 400 });
   }
+  await writeAudit(req, {
+    action: "ADMIN_UPLOAD",
+    entityType: "Upload",
+    metadata: { fileCount: files.length, uploadedCount: urls.length },
+    actor: guard.admin,
+  });
   return NextResponse.json({ ok: true, urls, errors });
 }

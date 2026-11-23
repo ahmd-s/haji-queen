@@ -417,9 +417,15 @@ const SUPPLIERS = [
 async function main() {
   console.log("Seeding Haji Queens…");
 
-  // Admin
-  const adminEmail = (process.env.ADMIN_EMAIL || "admin@hajiqueens.com").toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD || "HajiQueens#2026";
+  // Admin — credentials must be supplied explicitly; no production-safe default exists.
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+    throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD are required when seeding.");
+  }
+  if (process.env.ADMIN_PASSWORD.length < 12) {
+    throw new Error("ADMIN_PASSWORD must be at least 12 characters.");
+  }
+  const adminEmail = process.env.ADMIN_EMAIL.toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
   await db.adminUser.upsert({
     where: { email: adminEmail },
     update: {},

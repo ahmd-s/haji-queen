@@ -1,8 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Package, ClipboardList, Clock, CheckCircle2, MessageSquareText, IndianRupee } from "lucide-react";
+import { Plus } from "lucide-react";
+import {
+  ArrowUpRight,
+  ClipboardList,
+  IndianRupee,
+  MessageSquareText,
+  Package,
+  PackageSearch,
+  Tags,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { adminFetch, errorMessage } from "@/components/admin/api";
+import { InquiryStatusBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/admin/status";
+import {
+  AdminPageHeader,
+  AdminTableScroll,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Td,
+  Th,
+  TableHeadRow,
+} from "@/components/admin/ui";
+import { formatINR } from "@/lib/money";
 
 type Stats = {
   totalProducts: number;
@@ -11,6 +34,10 @@ type Stats = {
   completedOrders: number;
   newInquiries: number;
   totalRevenue: number;
+  paidRevenue: number;
+  lowStock: number;
+  pendingPrices: number;
+  enquiryOnly: number;
 };
 
 type RecentOrder = {
@@ -24,142 +51,309 @@ type RecentOrder = {
   createdAt: string;
 };
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [recent, setRecent] = useState<RecentOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+type RecentInquiry = {
+  id: string;
+  fullName: string;
+  garmentType: string;
+  status: string;
+  createdAt: string;
+};
 
-  useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.json())
-      .then((d) => {
-        setStats(d.stats);
-        setRecent(d.recentOrders ?? []);
-      })
-      .finally(() => setLoading(false));
+type StatsResponse = {
+  stats: Stats;
+  recentOrders: RecentOrder[];
+  recentInquiries: RecentInquiry[];
+};
+
+type AttentionItem = {
+  label: string;
+  detail: string;
+  count: number;
+  href: string;
+  icon: LucideIcon;
+  tone: "urgent" | "soon";
+};
+
+export default function AdminDashboard() {
+  const [data, setData] = useState<StatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setData(await adminFetch<StatsResponse>("/api/admin/stats"));
+    } catch (err) {
+      setError(errorMessage(err, "Dashboard could not be loaded."));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const cards = stats
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const stats = data?.stats;
+  const attention: AttentionItem[] = stats
     ? [
-        { label: "Products", value: stats.totalProducts, icon: Package, href: "/admin/products" },
-        { label: "Total Orders", value: stats.totalOrders, icon: ClipboardList, href: "/admin/orders" },
-        { label: "Pending Orders", value: stats.pendingOrders, icon: Clock, href: "/admin/orders" },
-        { label: "Completed Orders", value: stats.completedOrders, icon: CheckCircle2, href: "/admin/orders" },
-        { label: "New Inquiries", value: stats.newInquiries, icon: MessageSquareText, href: "/admin/inquiries" },
         {
-          label: "Order Value (all time)",
-          value: `₹${Math.round(stats.totalRevenue).toLocaleString("en-IN")}`,
+          label: "Orders to process",
+          detail: "New, confirmed or preparing — open the next one first.",
+          count: stats.pendingOrders,
+          href: "/admin/orders",
+          icon: ClipboardList,
+          tone: stats.pendingOrders > 0 ? "urgent" : "soon",
+        },
+        {
+          label: "New enquiries",
+          detail: "Customers waiting for a measurement response.",
+          count: stats.newInquiries,
+          href: "/admin/inquiries",
+          icon: MessageSquareText,
+          tone: stats.newInquiries > 0 ? "urgent" : "soon",
+        },
+        {
+          label: "Low stock options",
+          detail: "Size and colour combinations at or below their alert level.",
+          count: stats.lowStock,
+          href: "/admin/inventory",
+          icon: PackageSearch,
+          tone: "soon",
+        },
+        {
+          label: "Prices to confirm",
+          detail: "Hidden products that still need a selling price.",
+          count: stats.pendingPrices,
+          href: "/admin/products",
+          icon: Tags,
+          tone: "soon",
+        },
+      ]
+    : [];
+
+  const cards: { label: string; value: string; icon: LucideIcon; href: string }[] = stats
+    ? [
+        {
+          label: "Products in catalogue",
+          value: String(stats.totalProducts),
+          icon: Package,
+          href: "/admin/products",
+        },
+        {
+          label: "Orders placed",
+          value: String(stats.totalOrders),
+          icon: ClipboardList,
+          href: "/admin/orders",
+        },
+        {
+          label: "Orders delivered",
+          value: String(stats.completedOrders),
+          icon: ClipboardList,
+          href: "/admin/orders",
+        },
+        {
+          label: "Order value (not cancelled)",
+          value: formatINR(stats.totalRevenue),
           icon: IndianRupee,
           href: "/admin/orders",
+        },
+        {
+          label: "Value received",
+          value: formatINR(stats.paidRevenue),
+          icon: IndianRupee,
+          href: "/admin/orders",
+        },
+        {
+          label: "Enquiry-only pieces",
+          value: String(stats.enquiryOnly),
+          icon: MessageSquareText,
+          href: "/admin/products",
         },
       ]
     : [];
 
   return (
     <div>
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">Overview</p>
-          <h1 className="mt-1 font-display text-3xl text-espresso">Dashboard</h1>
-        </div>
-        <p className="hidden text-[12px] text-taupe sm:block">
-          {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Overview"
+        title="Dashboard"
+        description="Start here each day: the attention list shows what needs your action, and everything below is a click away."
+        actions={
+          <>
+            <p className="hidden text-[12px] text-taupe sm:block">
+              {new Date().toLocaleDateString("en-IN", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+            <Link
+              href="/admin/products"
+              className="inline-flex items-center justify-center gap-1.5 border border-espresso bg-espresso px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ivory hover:bg-gold hover:text-espresso"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add product
+            </Link>
+          </>
+        }
+      />
 
-      {loading ? (
-        <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse border border-border bg-cream/50" />
-          ))}
-        </div>
-      ) : (
-        <>
-          <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {cards.map((c) => (
-              <Link
-                key={c.label}
-                href={c.href}
-                className="group border border-border bg-white p-5 transition-colors hover:border-gold"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-taupe">
-                    {c.label}
-                  </p>
-                  <c.icon className="h-4 w-4 text-gold" strokeWidth={1.5} />
-                </div>
-                <p className="mt-3 font-display text-3xl text-espresso">{c.value}</p>
-              </Link>
-            ))}
-          </div>
+      <div className="mt-5">
+        {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
+        {loading ? <LoadingState label="Loading dashboard…" /> : null}
 
-          {/* Recent orders */}
-          <div className="mt-10">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-2xl text-espresso">Recent Orders</h2>
-              <Link href="/admin/orders" className="text-[12px] font-semibold uppercase tracking-[0.16em] text-gold hover:underline">
-                View all
-              </Link>
-            </div>
-            {recent.length === 0 ? (
-              <p className="mt-4 border border-border bg-white p-6 text-[13px] text-taupe">
-                No orders yet. Orders placed on the website appear here instantly.
-              </p>
-            ) : (
-              <div className="mt-4 overflow-x-auto border border-border bg-white">
-                <table className="w-full min-w-[640px] text-left text-[13px]">
+        {data && stats ? (
+          <div className="space-y-8">
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="font-display text-xl text-espresso">Needs your attention</h2>
+                <span className="text-[11px] text-taupe">Updated whenever this page loads</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {attention.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`group flex items-start gap-3 border bg-white p-4 transition-colors hover:border-gold ${
+                      item.tone === "urgent" ? "border-gold/45 bg-champagne/20" : "border-border"
+                    }`}
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-cream text-gold">
+                      <item.icon className="h-5 w-5" strokeWidth={1.5} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-[13px] font-semibold text-espresso">{item.label}</span>
+                        <span className="font-display text-2xl text-espresso">{item.count}</span>
+                      </span>
+                      <span className="mt-1 block text-[11.5px] leading-relaxed text-taupe">
+                        {item.detail}
+                      </span>
+                    </span>
+                    <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-taupe group-hover:text-gold" />
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="mb-3 font-display text-xl text-espresso">At a glance</h2>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                {cards.map((card) => (
+                  <Link
+                    key={card.label}
+                    href={card.href}
+                    className="group border border-border bg-white p-4 transition-colors hover:border-gold sm:p-5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-taupe">
+                        {card.label}
+                      </p>
+                      <card.icon className="h-4 w-4 shrink-0 text-gold" strokeWidth={1.5} />
+                    </div>
+                    <p className="mt-3 font-display text-2xl text-espresso sm:text-3xl">{card.value}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="font-display text-xl text-espresso">Latest orders</h2>
+                <Link
+                  href="/admin/orders"
+                  className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gold hover:underline"
+                >
+                  View all orders
+                </Link>
+              </div>
+              {data.recentOrders.length === 0 ? (
+                <EmptyState
+                  title="No orders yet"
+                  description="Orders placed on the website appear here as soon as they are submitted."
+                />
+              ) : (
+                <AdminTableScroll minWidth={680}>
                   <thead>
-                    <tr className="border-b border-border bg-cream/40 text-[11px] uppercase tracking-[0.14em] text-taupe">
-                      <th className="px-4 py-3 font-semibold">Order</th>
-                      <th className="px-4 py-3 font-semibold">Customer</th>
-                      <th className="px-4 py-3 font-semibold">Items</th>
-                      <th className="px-4 py-3 font-semibold">Total</th>
-                      <th className="px-4 py-3 font-semibold">Status</th>
-                      <th className="px-4 py-3 font-semibold">Payment</th>
-                    </tr>
+                    <TableHeadRow>
+                      <Th>Order</Th>
+                      <Th>Customer</Th>
+                      <Th>Items</Th>
+                      <Th>Total</Th>
+                      <Th>Status</Th>
+                      <Th>Payment</Th>
+                    </TableHeadRow>
                   </thead>
                   <tbody>
-                    {recent.map((o) => (
-                      <tr key={o.id} className="border-b border-border last:border-0">
-                        <td className="px-4 py-3 font-semibold text-espresso">
-                          <Link href="/admin/orders" className="hover:text-gold">
-                            {o.orderNumber}
+                    {data.recentOrders.map((order) => (
+                      <tr key={order.id} className="border-b border-border/70 last:border-0">
+                        <Td>
+                          <Link href="/admin/orders" className="font-semibold text-espresso hover:text-gold">
+                            {order.orderNumber}
                           </Link>
-                        </td>
-                        <td className="px-4 py-3 text-espresso/80">{o.customerName}</td>
-                        <td className="px-4 py-3 text-espresso/80">{o.itemCount}</td>
-                        <td className="px-4 py-3 font-medium text-espresso">
-                          ₹{Math.round(o.total).toLocaleString("en-IN")}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusChip status={o.status} />
-                        </td>
-                        <td className="px-4 py-3 text-espresso/80">{o.paymentStatus}</td>
+                          <span className="block text-[10.5px] text-taupe">
+                            {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                            })}
+                          </span>
+                        </Td>
+                        <Td className="text-espresso/80">{order.customerName}</Td>
+                        <Td className="text-espresso/70">{order.itemCount}</Td>
+                        <Td className="font-medium text-espresso">{formatINR(order.total)}</Td>
+                        <Td><OrderStatusBadge status={order.status} /></Td>
+                        <Td><PaymentStatusBadge status={order.paymentStatus} /></Td>
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+                </AdminTableScroll>
+              )}
+            </section>
 
-export function StatusChip({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    PENDING: "bg-champagne text-gold-deep",
-    CONFIRMED: "bg-champagne text-espresso",
-    PROCESSING: "bg-champagne text-espresso",
-    SHIPPED: "bg-espresso/10 text-espresso",
-    DELIVERED: "bg-gold/15 text-gold-deep",
-    CANCELLED: "bg-destructive/10 text-destructive",
-  };
-  return (
-    <span className={`inline-block px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] ${styles[status] ?? "bg-cream text-espresso"}`}>
-      {status}
-    </span>
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="font-display text-xl text-espresso">Open enquiries</h2>
+                <Link
+                  href="/admin/inquiries"
+                  className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gold hover:underline"
+                >
+                  Open inbox
+                </Link>
+              </div>
+              {data.recentInquiries.length === 0 ? (
+                <EmptyState
+                  title="No open enquiries"
+                  description="New and in-review measurement requests will show here."
+                />
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {data.recentInquiries.map((inquiry) => (
+                    <Link
+                      key={inquiry.id}
+                      href="/admin/inquiries"
+                      className="border border-border bg-white p-4 transition-colors hover:border-gold"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="truncate font-medium text-espresso">{inquiry.fullName}</p>
+                        <InquiryStatusBadge status={inquiry.status} />
+                      </div>
+                      <p className="mt-1 truncate text-[11.5px] text-taupe">{inquiry.garmentType}</p>
+                      <p className="mt-2 text-[10.5px] text-taupe">
+                        {new Date(inquiry.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }

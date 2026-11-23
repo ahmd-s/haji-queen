@@ -1,29 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
+import { writeAudit } from "@/lib/audit";
+import { serviceErrorResponse } from "@/lib/services/errors";
+import { orderPatchSchema, updateOrderStatus } from "@/lib/services/order";
 
-const patchSchema = z.object({
-  status: z
-    .enum(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"])
-    .optional(),
-  paymentStatus: z.enum(["UNPAID", "PAID", "REFUNDED", "FAILED"]).optional(),
-  internalNotes: z.string().trim().max(600).nullable().optional(),
-});
-
-/** GET — order detail */
+/** GET — order detail with purchased snapshots. */
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req);
   if (guard.error) return guard.error;
   const { id } = await ctx.params;
-  const order = await db.order.findUnique({ where: { id }, include: { items: true } });
+  const order = await db.order.findUnique({
+    where: { id },
+    include: {
+      items: true,
+      statusHistory: { orderBy: { createdAt: "asc" } },
+      shippingRule: { select: { name: true, flatFee: true, freeThreshold: true } },
+    },
+  });
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ order });
 }
 
-/** PATCH — update status / payment status / internal notes */
+/** PATCH — status/payment updates via OrderService (restocks on cancellation). */
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
   const { id } = await ctx.params;
 
@@ -33,10 +34,22 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
-  const parsed = patchSchema.safeParse(body);
+  const parsed = orderPatchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid status values." }, { status: 400 });
   }
-  const order = await db.order.update({ where: { id }, data: parsed.data });
-  return NextResponse.json({ ok: true, status: order.status, paymentStatus: order.paymentStatus });
+
+  try {
+    const order = await updateOrderStatus(id, parsed.data, guard.admin.id);
+    await writeAudit(req, {
+      action: "ORDER_STATUS_UPDATE",
+      entityType: "Order",
+      entityId: id,
+      metadata: { status: order.status, paymentStatus: order.paymentStatus },
+      actor: guard.admin,
+    });
+    return NextResponse.json({ ok: true, status: order.status, paymentStatus: order.paymentStatus });
+  } catch (error) {
+    return serviceErrorResponse(error, "Could not update the order.");
+  }
 }

@@ -12,25 +12,19 @@
  *  7. DELETE removes only the scratch product.
  *  8. Sitemap excludes hidden products.
  */
-import { createHmac, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { readFile, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 const BASE = "http://localhost:3000";
-const AUTH_SECRET = process.env.AUTH_SECRET || "hq-dev-secret-change-me-3f9c2b7a8d";
-const COOKIE = "hq_admin_session=" + mkToken();
-
-function mkToken() {
-  const payload = {
-    id: "qa-operator",
-    email: "admin@hajiqueens.com",
-    name: "QA Operator",
-    role: "SUPER_ADMIN",
-    exp: Math.floor(Date.now() / 1000) + 600,
-  };
-  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const sig = createHmac("sha256", AUTH_SECRET).update(body).digest("base64url");
-  return `${body}.${sig}`;
+if (!process.env.QA_ADMIN_COOKIE) {
+  throw new Error("QA_ADMIN_COOKIE must contain a real hq_admin_session cookie value.");
 }
+const cookieValue = process.env.QA_ADMIN_COOKIE;
+const COOKIE = cookieValue.startsWith("hq_admin_session=")
+  ? cookieValue
+  : `hq_admin_session=${cookieValue}`;
 
 let pass = 0, fail = 0;
 function check(name, ok, detail = "") {
@@ -153,7 +147,7 @@ console.log("\n[6] Image upload");
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
     "base64"
   );
-  const tmp = "/tmp/qa-upload.png";
+  const tmp = join(tmpdir(), "qa-upload.png");
   await writeFile(tmp, png);
   const form = new FormData();
   form.append("files", new Blob([png], { type: "image/png" }), "qa-sample.png");
@@ -170,7 +164,7 @@ console.log("\n[6] Image upload");
     check("non-image upload rejected", rej.status === 400, `status ${rej.status}`);
     const noAuth = await fetch(`${BASE}/api/admin/upload`, { method: "POST", body: form });
     check("upload requires admin session", noAuth.status === 401, `status ${noAuth.status}`);
-    await rm(d.urls[0].replace("/images/products", "/home/z/my-project/public/images/products"));
+    await rm(resolve(process.cwd(), "public", d.urls[0].replace(/^\//, "")), { force: true });
   }
 }
 

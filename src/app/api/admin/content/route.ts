@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
+import { writeAudit } from "@/lib/audit";
 
 /** GET — all editable site content */
 export async function GET(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req);
   if (guard.error) return guard.error;
   const rows = await db.siteContent.findMany({ orderBy: { key: "asc" } });
   const content: Record<string, unknown> = {};
@@ -26,7 +27,7 @@ const putSchema = z.object({
 
 /** PUT — upsert a content key */
 export async function PUT(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
 
   let body: unknown;
@@ -43,6 +44,13 @@ export async function PUT(req: NextRequest) {
     where: { key: parsed.data.key },
     update: { value: JSON.stringify(parsed.data.value) },
     create: { key: parsed.data.key, value: JSON.stringify(parsed.data.value) },
+  });
+  await writeAudit(req, {
+    action: "CONTENT_UPDATE",
+    entityType: "SiteContent",
+    entityId: parsed.data.key,
+    metadata: { key: parsed.data.key },
+    actor: guard.admin,
   });
   return NextResponse.json({ ok: true });
 }

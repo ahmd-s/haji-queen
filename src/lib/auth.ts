@@ -2,22 +2,36 @@ import { randomBytes, scryptSync, timingSafeEqual, createHmac } from "crypto";
 
 /**
  * Admin authentication — HMAC-signed session tokens + scrypt password hashing.
- * No external auth dependency; secrets live in environment variables only.
+ * The signing secret is required. There is deliberately no fallback secret:
+ * a missing AUTH_SECRET must fail closed rather than allow forged tokens.
  */
 
-const AUTH_SECRET =
-  process.env.AUTH_SECRET || "hq-dev-secret-change-me-3f9c2b7a8d";
-
 export const SESSION_COOKIE = "hq_admin_session";
-export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+export const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12 hours
+
+export const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"] as const;
+export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 export type SessionPayload = {
   id: string;
   email: string;
   name: string;
   role: string;
+  ver: number;
   exp: number; // unix seconds
 };
+
+export type SessionInput = Omit<SessionPayload, "exp">;
+
+function getAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "AUTH_SECRET is required and must be at least 32 characters. Set it in the deployment environment."
+    );
+  }
+  return secret;
+}
 
 function b64url(input: string | Buffer): string {
   return Buffer.from(input).toString("base64url");
@@ -38,10 +52,10 @@ export function verifyPassword(password: string, stored: string): boolean {
 }
 
 function sign(data: string): string {
-  return createHmac("sha256", AUTH_SECRET).update(data).digest("base64url");
+  return createHmac("sha256", getAuthSecret()).update(data).digest("base64url");
 }
 
-export function createSessionToken(payload: Omit<SessionPayload, "exp">): string {
+export function createSessionToken(payload: SessionInput): string {
   const full: SessionPayload = {
     ...payload,
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
@@ -54,15 +68,28 @@ export function verifySessionToken(token: string | undefined | null): SessionPay
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
-  const expected = sign(body);
+
+  let expected: string;
+  try {
+    expected = sign(body);
+  } catch {
+    return null;
+  }
+
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+
   try {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as SessionPayload;
     if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    if (typeof payload.ver !== "number" || !ADMIN_ROLES.includes(payload.role as AdminRole)) return null;
     return payload;
   } catch {
     return null;
   }
+}
+
+export function isSuperAdmin(role: string | undefined): boolean {
+  return role === "SUPER_ADMIN";
 }

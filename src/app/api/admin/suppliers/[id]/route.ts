@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
+import { writeAudit } from "@/lib/audit";
 
 const updateSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
@@ -14,7 +15,7 @@ const updateSchema = z.object({
 });
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
   const { id } = await ctx.params;
   let body: unknown;
@@ -29,14 +30,21 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   }
   try {
     await db.supplier.update({ where: { id }, data: parsed.data });
-    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Supplier not found." }, { status: 404 });
   }
+  await writeAudit(req, {
+    action: "SUPPLIER_UPDATE",
+    entityType: "Supplier",
+    entityId: id,
+    metadata: { updatedFields: Object.keys(parsed.data) },
+    actor: guard.admin,
+  });
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
   const { id } = await ctx.params;
   const entries = await db.supplierCatalogueEntry.count({ where: { supplierId: id } });
@@ -47,5 +55,11 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     );
   }
   await db.supplier.delete({ where: { id } });
+  await writeAudit(req, {
+    action: "SUPPLIER_DELETE",
+    entityType: "Supplier",
+    entityId: id,
+    actor: guard.admin,
+  });
   return NextResponse.json({ ok: true });
 }

@@ -15,14 +15,15 @@ datasource db {
 // ────────────────────────── Admin & Auth ──────────────────────────
 
 model AdminUser {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  role         String    @default("ADMIN") // ADMIN | SUPER_ADMIN
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String
+  name           String
+  role           String    @default("ADMIN") // ADMIN | SUPER_ADMIN
+  isActive       Boolean   @default(true)
+  sessionVersion Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 // ────────────────────────── Catalogue ──────────────────────────
@@ -65,7 +66,7 @@ model Product {
   featured         Boolean  @default(false)
   visible          Boolean  @default(true)
   popularity       Int      @default(0)
-  sku              String?
+  sku              String?  @unique
   // ── Catalogue workflow (defaults keep legacy products' behaviour unchanged) ──
   // false = selling price not yet approved: never shown or purchasable.
   priceConfirmed   Boolean  @default(true)
@@ -76,23 +77,45 @@ model Product {
   sizeNotes        String? // customer-facing measurements as stated by the source
   reviewNotes      String? // ADMIN ONLY — JSON [{field, note}] of unresolved items
   catalogueBatch   String? // e.g. "MASTER_V1_1" — genuine catalogue imports
+  isEnquiryOnly     Boolean  @default(false)
+  customSizingAllowed Boolean @default(false)
+  readyToDispatch   Boolean  @default(false)
+  preorderAllowed   Boolean  @default(false)
+  publishedAt      DateTime?
+  publishedBy      String?
+  shippingRuleId   String?
+  shippingRule     ShippingRule? @relation(fields: [shippingRuleId], references: [id])
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   variants         ProductVariant[]
   orderItems       OrderItem[]
   catalogueEntry   SupplierCatalogueEntry?
+  stockMovements   StockMovement[]
+
+  @@index([categoryId, visible, createdAt])
+  @@index([visible, featured, createdAt])
 }
 
 model ProductVariant {
-  id        String  @id @default(uuid())
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  size      String
-  color     String
-  stock     Int     @default(0)
-  sku       String?
+  id               String  @id @default(uuid())
+  productId        String
+  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size             String
+  color            String
+  stock            Int     @default(0)
+  sku              String? @unique
+  extraPrice       Float   @default(0)
+  sortOrder        Int     @default(0)
+  isActive         Boolean @default(true)
+  lowStockThreshold Int    @default(2)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  stockMovements   StockMovement[]
+  reservations     InventoryReservation[]
+  orderItems       OrderItem[]
 
   @@unique([productId, size, color])
+  @@index([productId])
 }
 
 // ────────────────────────── Suppliers (internal only) ──────────────────────────
@@ -134,12 +157,18 @@ model SupplierCatalogueEntry {
 // ────────────────────────── Customers & Orders ──────────────────────────
 
 model Customer {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?
-  phone     String
-  createdAt DateTime @default(now())
-  orders    Order[]
+  id              String   @id @default(uuid())
+  name            String
+  email           String?
+  emailNormalized String?
+  phone           String
+  phoneKey        String?  @unique // digits-only key; backfilled by migration
+  consentAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orders          Order[]
+
+  @@index([phone])
 }
 
 model Order {
@@ -164,9 +193,26 @@ model Order {
   paymentRef    String? // gateway reference when live
   customerNote  String?
   internalNotes String?
+  idempotencyKey String? @unique
+  currency      String   @default("INR")
+  discount      Float    @default(0)
+  tax           Float    @default(0)
+  carrier       String?
+  trackingNumber String?
+  shippingRuleId String?
+  shippingRule  ShippingRule? @relation(fields: [shippingRuleId], references: [id])
+  cancelledAt   DateTime?
+  cancellationReason String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   items         OrderItem[]
+  payments      Payment[]
+  statusHistory OrderStatusEvent[]
+  stockMovements StockMovement[]
+  reservations  InventoryReservation[]
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
 }
 
 model OrderItem {
@@ -175,6 +221,8 @@ model OrderItem {
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId   String?
   product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   productName String
   productSlug String
   imageUrl    String?
@@ -216,6 +264,9 @@ model MeasurementInquiry {
   source              String? // e.g. "product:embroidered-occasion-abaya"
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([phone])
 }
 
 model ContactInquiry {
@@ -226,6 +277,8 @@ model ContactInquiry {
   message   String
   status    String   @default("NEW")
   createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
 }
 
 // ────────────────────────── Editable site content ──────────────────────────
@@ -234,4 +287,157 @@ model SiteContent {
   key       String   @id
   value     String // JSON payload
   updatedAt DateTime @updatedAt
+}
+
+// ────────────────────────── Security & audit ──────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   String? // JSON payload
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+}
+
+// ────────────────────────── Commerce operations ──────────────────────────
+
+model ShippingRule {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  description   String?
+  flatFee       Float    @default(0)
+  freeThreshold Float?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  products      Product[]
+  orders        Order[]
+}
+
+model StockMovement {
+  id         String          @id @default(uuid())
+  productId  String
+  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId  String
+  variant    ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  orderId    String?
+  order      Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  delta      Int
+  reason     String // PURCHASE | RESTOCK | ORDER_PLACED | ORDER_CANCELLED | MANUAL_ADJUSTMENT
+  actorId    String?
+  note       String?
+  createdAt  DateTime        @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([productId, createdAt])
+  @@index([orderId])
+}
+
+model InventoryReservation {
+  id         String         @id @default(uuid())
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  orderId    String?
+  order      Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  quantity   Int
+  expiresAt  DateTime
+  releasedAt DateTime?
+  createdAt  DateTime       @default(now())
+
+  @@index([variantId, expiresAt])
+  @@index([orderId])
+}
+
+model Payment {
+  id                  String   @id @default(uuid())
+  orderId             String
+  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  gateway             String // COD | BANK_TRANSFER | RAZORPAY
+  gatewayOrderId      String?
+  gatewayPaymentId    String?
+  amount              Float
+  currency            String   @default("INR")
+  status              String   @default("PENDING") // PENDING | AUTHORIZED | CAPTURED | FAILED | REFUNDED
+  method              String?
+  signatureVerifiedAt DateTime?
+  rawPayloadHash      String?
+  failureReason       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  refunds             Refund[]
+
+  @@unique([gateway, gatewayOrderId])
+  @@unique([gateway, gatewayPaymentId])
+  @@index([orderId])
+}
+
+model Refund {
+  id              String   @id @default(uuid())
+  paymentId       String
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  amount          Float
+  reason          String?
+  gatewayRefundId String?  @unique
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+}
+
+model OrderStatusEvent {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus String?
+  toStatus   String
+  actorId    String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+model MediaAsset {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  url       String
+  alt       String?
+  mimeType  String
+  sizeBytes Int
+  width     Int?
+  height    Int?
+  checksum  String?
+  kind      String   @default("PRODUCT")
+  createdAt DateTime @default(now())
+
+  @@index([kind, createdAt])
+}
+
+model WebhookEvent {
+  id          String    @id // gateway event id
+  gateway     String
+  eventType   String
+  payloadHash String
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([gateway, createdAt])
+}
+
+model IdempotencyKey {
+  key         String   @id
+  scope       String
+  requestHash String
+  responseJson String?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([scope, expiresAt])
 }

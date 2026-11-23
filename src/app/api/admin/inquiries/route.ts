@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
+import { listAdminInquiries } from "@/lib/services/admin-lists";
 
-/** GET — measurement inquiries (sensitive data — admin only) */
+/** GET — sensitive measurement enquiries; admin only, bounded pagination. */
 export async function GET(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req);
   if (guard.error) return guard.error;
 
-  const inquiries = await db.measurementInquiry.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-  return NextResponse.json({ inquiries });
+  const page = await listAdminInquiries(req.nextUrl.searchParams);
+  return NextResponse.json({ inquiries: page.items, pagination: page.pagination });
 }

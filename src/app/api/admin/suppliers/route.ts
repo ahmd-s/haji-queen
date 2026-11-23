@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
+import { writeAudit } from "@/lib/audit";
 
 const supplierSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -15,7 +16,7 @@ const supplierSchema = z.object({
 
 /** GET — suppliers with catalogue entries (INTERNAL data — admin only) */
 export async function GET(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req);
   if (guard.error) return guard.error;
 
   const suppliers = await db.supplier.findMany({
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
 
 /** POST — create supplier */
 export async function POST(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
 
   let body: unknown;
@@ -53,6 +54,13 @@ export async function POST(req: NextRequest) {
       notes: d.notes || null,
       isActive: d.isActive ?? true,
     },
+  });
+  await writeAudit(req, {
+    action: "SUPPLIER_CREATE",
+    entityType: "Supplier",
+    entityId: supplier.id,
+    metadata: { name: d.name },
+    actor: guard.admin,
   });
   return NextResponse.json({ ok: true, id: supplier.id });
 }

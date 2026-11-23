@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth-api";
 
 /** GET — categories for admin forms */
 export async function GET(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req);
   if (guard.error) return guard.error;
   const categories = await db.category.findMany({
     orderBy: { sortOrder: "asc" },

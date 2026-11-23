@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
+import { listAdminOrders } from "@/lib/services/admin-lists";
 
-/** GET — orders list (most recent first) */
+/** GET — orders with bounded pagination, search and status filters. */
 export async function GET(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req);
   if (guard.error) return guard.error;
 
-  const orders = await db.order.findMany({
-    include: { items: true },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-  return NextResponse.json({ orders });
+  const page = await listAdminOrders(req.nextUrl.searchParams);
+  return NextResponse.json({ orders: page.items, pagination: page.pagination });
 }

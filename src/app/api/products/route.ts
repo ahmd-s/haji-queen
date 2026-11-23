@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProducts } from "@/lib/data";
+import { getProducts } from "@/lib/services/catalogue";
 
 function numericParam(raw: string | null): number | undefined {
   if (raw === null || raw.trim() === "") return undefined;

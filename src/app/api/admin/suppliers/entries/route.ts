@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-api";
+import { writeAudit } from "@/lib/audit";
 import { computeRetail } from "@/lib/money";
 
 const entrySchema = z.object({
@@ -18,7 +19,7 @@ const entrySchema = z.object({
 
 /** GET — entries for a supplier */
 export async function GET(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req);
   if (guard.error) return guard.error;
   const supplierId = req.nextUrl.searchParams.get("supplierId");
   const entries = await db.supplierCatalogueEntry.findMany({
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
 
 /** POST — create catalogue entry; suggests retail via markup engine */
 export async function POST(req: NextRequest) {
-  const guard = requireAdmin(req);
+  const guard = await requireAdmin(req, { roles: ["SUPER_ADMIN"] });
   if (guard.error) return guard.error;
 
   let body: unknown;
@@ -59,6 +60,13 @@ export async function POST(req: NextRequest) {
       notes: d.notes || null,
       productId: d.productId || null,
     },
+  });
+  await writeAudit(req, {
+    action: "SUPPLIER_ENTRY_CREATE",
+    entityType: "SupplierCatalogueEntry",
+    entityId: entry.id,
+    metadata: { supplierId: d.supplierId, itemName: d.itemName },
+    actor: guard.admin,
   });
   return NextResponse.json({ ok: true, id: entry.id, suggestedRetail });
 }
