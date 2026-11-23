@@ -106,7 +106,11 @@ Verification status (completed 2026-11-23):
 - `npx eslint .` — passed with no errors.
 - `npx next build` — passed; all 48 static pages generated, all admin routes and APIs present in the route manifest.
 - HTTP smoke checks against a production local build: unauthenticated admin APIs return 401, admin pages redirect with 307, public `/api/products` and `/api/meta/catalog` return 200. With a signed super-admin session, 11 admin list/settings APIs, 3 detail APIs, stock movements and all 11 admin pages return 200.
-- Deployment and owner UAT are still pending.
+- Committed as `dcc4a0a` and pushed to GitHub.
+- Deployed to Vercel production at `https://haji-queen.vercel.app` (deployment `dpl_EJNxip2VC43Va8iezbpivHucBcdG`).
+- Production `AUTH_SECRET` was rotated to a new 64-character random value during deployment verification; existing admin sessions are invalidated and the owner must sign in again. `NEXT_PUBLIC_SITE_URL` is `https://haji-queen.vercel.app`.
+- Live checks passed: unauthenticated admin APIs 401, admin pages redirect, public APIs 200, and all admin list/detail/page routes 200 with a signed super-admin session.
+- Owner UAT is now the only remaining Phase 4 exit requirement.
 
 Exit gate: **not met**. The owner must complete `docs/PHASE4_UAT.md` without developer help.
 
