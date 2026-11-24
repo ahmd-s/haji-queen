@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ShopBrowser } from "@/components/product/shop-browser";
-import { getCategories } from "@/lib/data";
+import { getCategories, getProducts } from "@/lib/data";
 
 export const metadata: Metadata = {
-  title: "Shop All — Abayas, Maxis, Fusion & Workwear",
+  title: "Shop All: Abayas, Maxis, Indo-Western & Workwear",
   description:
-    "Browse the complete Haji Queens collection — modest abayas, flowing maxis, indo-western fusion and considered workwear.",
+    "Browse the complete Haji Queens collection: abayas, maxis and dresses, Indo-Western sets and workwear.",
 };
 
 export const dynamic = "force-dynamic";
@@ -16,34 +16,19 @@ export default async function ShopPage({
 }: {
   searchParams: Promise<{ search?: string }>;
 }) {
-  const { search } = await searchParams;
-  const categories = await getCategories();
+  const { search: raw } = await searchParams;
+  const search = raw?.trim() || undefined;
+  const [categories, products] = await Promise.all([getCategories(), getProducts({ search, sort: "newest" })]);
 
   return (
     <>
-      <header className="border-b border-border bg-cream/40">
-        <div className="container-hq py-14 lg:py-20">
-          <nav aria-label="Breadcrumb" className="text-[11px] uppercase tracking-[0.2em] text-taupe">
-            Home <span className="mx-1.5 text-gold">/</span> Shop
-          </nav>
-          <h1 className="display-1 mt-4 text-espresso">
-            {search ? `“${search}”` : "The Collection"}
-          </h1>
-          <p className="mt-4 max-w-xl text-[14.5px] leading-relaxed text-espresso/70">
-            {search
-              ? "Results from across our collections."
-              : "Every piece in the Haji Queens edit — designed in-house or sourced from trusted catalogues, presented to one standard."}
-          </p>
-        </div>
+      <header className="wrap pb-8 pt-10 md:pb-12 md:pt-16">
+        {search && <p className="mb-2 text-ink-soft">Search results for</p>}
+        <h1 className="t-title">{search ? `“${search}”` : "The collection"}</h1>
       </header>
-
-      <div className="pt-10">
-        <Suspense
-          fallback={<div className="container-hq py-20 text-center text-sm text-taupe">Loading collection…</div>}
-        >
-          <ShopBrowser categories={categories} initialSearch={search} />
-        </Suspense>
-      </div>
+      <Suspense>
+        <ShopBrowser key={search ?? ""} products={products} categories={categories} active={search ? "" : "all"} />
+      </Suspense>
     </>
   );
 }

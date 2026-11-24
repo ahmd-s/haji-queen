@@ -1,58 +1,50 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Heart, MessageCircle, Minus, Plus, Ruler, ShoppingBag, Zap } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  AVAILABILITY_LABEL,
-  isVariantPurchasable,
-  maxVariantQuantity,
-  normaliseAvailability,
-  variantUnavailableReason,
-} from "@/lib/availability";
-import { SizeGuideDialog } from "@/components/product/size-guide";
-import { useCart } from "@/store/cart-store";
-import { useWishlist } from "@/store/wishlist-store";
-import { pixelEvents } from "@/lib/pixel";
+import { ProductGallery } from "@/components/product/product-gallery";
+import { SizeGuide, isLengthSized } from "@/components/product/size-guide";
+import { WishlistButton } from "@/components/product/wishlist-button";
+import { Quantity } from "@/components/storefront/bag-lines";
+import { isVariantPurchasable, maxVariantQuantity, variantUnavailableReason } from "@/lib/availability";
 import { formatINR } from "@/lib/money";
+import { pixelEvents } from "@/lib/pixel";
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, SITE_URL } from "@/lib/site";
+import {
+  categoryLabel,
+  colourPhotos,
+  displayBadge,
+  enquiryNote,
+  hasPrice,
+  photoPosition,
+  statusLabel,
+  swatchBackground,
+} from "@/lib/storefront";
 import { isWhatsAppConfigured, waProductLink } from "@/lib/whatsapp";
-import { SITE_URL } from "@/lib/site";
+import { useCart } from "@/store/cart-store";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
 import type { ProductDTO } from "@/lib/types";
 
-export function ProductDetail({
-  product,
-  enquiryEmail,
-}: {
-  product: ProductDTO;
-  enquiryEmail?: string;
-}) {
+export function ProductDetail({ product, initialColour }: { product: ProductDTO; initialColour?: string }) {
   const router = useRouter();
-  const reduce = useReducedMotion();
-
-  const [imageIdx, setImageIdx] = useState(0);
-  const [color, setColor] = useState(
-    () => product.colors.find((c) => c.available !== false)?.name ?? product.colors[0]?.name ?? ""
-  );
-  const [size, setSize] = useState<string>(() => (product.sizes.length === 1 ? product.sizes[0] : ""));
-  const [quantity, setQuantity] = useState(1);
-  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
-
   const add = useCart((s) => s.add);
-  const wishlistToggle = useWishlist((s) => s.toggle);
-  const wishlisted = useWishlist((s) => s.items.some((i) => i.productId === product.id));
 
-  // ViewContent — fires once per mount (deduped by pixel guard)
+  const [colour, setColour] = useState(() => {
+    const open = product.colors.filter((c) => c.available !== false);
+    return (open.find((c) => c.name === initialColour) ?? open[0] ?? product.colors[0])?.name ?? "";
+  });
+  const [size, setSize] = useState(() =>
+    product.sizes.length === 1 && isVariantPurchasable(product, product.sizes[0], colour) ? product.sizes[0] : ""
+  );
+  const [quantity, setQuantity] = useState(1);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ctaVisible, setCtaVisible] = useState(true);
+  const sizeRef = useRef<HTMLFieldSetElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     pixelEvents.viewContent({
       id: product.id,
@@ -62,454 +54,394 @@ export function ProductDetail({
     });
   }, [product.id]);
 
-  const activeColour = product.colors.find((c) => c.name === color);
-  const galleryImages = activeColour?.images?.length ? activeColour.images : product.images;
-  const hasPhotos = galleryImages.length > 0;
-  const cartColor = product.colors.length ? color : "";
-  const selectedVariant = product.variants.find(
-    (v) => v.size === size && v.color === cartColor
-  );
-  const variantAvailable = isVariantPurchasable(product, size, cartColor);
-  const qtyMax = size ? Math.max(1, maxVariantQuantity(product, size, cartColor)) : 1;
-  const canPurchase = product.purchasable && variantAvailable;
-  const purchaseNote =
-    product.unavailableReason ?? variantUnavailableReason(product, size, cartColor);
+  useEffect(() => {
+    const el = ctaRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setCtaVisible(entry.isIntersecting), { threshold: 0.15 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
-  const handleAdd = (goToCheckout = false) => {
+  const activeColour = product.colors.find((c) => c.name === colour);
+  const photos = colourPhotos(product, activeColour);
+  const variantColour = product.colors.length ? colour : "";
+  const variant = product.variants.find((v) => v.size === size && v.color === variantColour);
+  const variantOk = isVariantPurchasable(product, size, variantColour);
+  const maxQty = size ? Math.max(1, Math.min(10, maxVariantQuantity(product, size, variantColour))) : 1;
+  const lengthSized = isLengthSized(product.sizes);
+  const badge = displayBadge(product);
+
+  const chooseColour = (name: string) => {
+    setColour(name);
+    setQuantity(1);
+    setError(null);
+    if (size && !isVariantPurchasable(product, size, name)) setSize("");
+    window.history.replaceState(null, "", `${window.location.pathname}?colour=${encodeURIComponent(name)}`);
+  };
+
+  const addToBag = (checkout = false) => {
     if (!size) {
-      toast({ title: "Please select a size", description: "Choose the size that fits you best." });
+      setError(lengthSized ? "Choose a length to continue" : "Choose a size to continue");
+      sizeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      sizeRef.current?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus({ preventScroll: true });
       return;
     }
-    if (!variantAvailable || !selectedVariant) {
-      toast({
-        title: "This option is not available",
-        description: variantUnavailableReason(product, size, cartColor) ?? undefined,
-      });
+    if (!variantOk || !variant) {
+      setError(variantUnavailableReason(product, size, variantColour) ?? "This option is not available");
       return;
     }
-    setAdding(true);
     add({
       productId: product.id,
       slug: product.slug,
       name: product.name,
-      image: galleryImages[0] ?? "",
+      image: photos[0] ?? "",
       price: product.price,
       size,
-      color: cartColor,
+      color: variantColour,
       quantity,
-      maxStock: product.trackStock ? selectedVariant.stock : 10,
+      maxStock: product.trackStock ? variant.stock : 10,
     });
     pixelEvents.addToCart({ id: product.id, name: product.name, price: product.price, quantity });
-    toast({ title: goToCheckout ? "Taking you to checkout" : "Added to your bag", description: product.name });
-    setTimeout(() => {
-      setAdding(false);
-      if (goToCheckout) router.push("/checkout");
-    }, 350);
+    if (checkout) router.push("/checkout");
   };
 
-  const variantLabel = [color, size && `Size ${size}`].filter(Boolean).join(", ");
+  const contactHref = useMemo(() => {
+    const params = new URLSearchParams({ product: product.slug });
+    if (colour) params.set("colour", colour);
+    if (size) params.set("size", size);
+    return `/contact?${params.toString()}`;
+  }, [product.slug, colour, size]);
 
-  const whatsappUrl = useMemo(() => {
-    return waProductLink(product.name, `${SITE_URL}/product/${product.slug}`, variantLabel || undefined);
-  }, [variantLabel, product.name, product.slug]);
+  const whatsappHref = isWhatsAppConfigured()
+    ? waProductLink(
+        product.name,
+        `${SITE_URL}/product/${product.slug}`,
+        [colour, size && `Size ${size}`].filter(Boolean).join(", ") || undefined
+      )
+    : null;
 
-  const enquiryUrl = useMemo(() => {
-    if (isWhatsAppConfigured()) return whatsappUrl;
-    const subject = `Enquiry: ${product.name}`;
-    const body = [
-      "Hello Haji Queens,",
-      "",
-      `I would like to know more about ${product.name}${variantLabel ? ` (${variantLabel})` : ""}.`,
-      `${SITE_URL}/product/${product.slug}`,
-    ].join("\n");
-    if (enquiryEmail) {
-      return `mailto:${enquiryEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    }
-    return `/contact`;
-  }, [whatsappUrl, enquiryEmail, product.name, product.slug, variantLabel]);
-
-  const chooseColor = (name: string) => {
-    setColor(name);
-    setImageIdx(0);
-    if (size && !product.variants.some((v) => v.color === name && v.size === size)) {
-      setSize("");
-    }
-    setQuantity(1);
-  };
+  const price = hasPrice(product) ? formatINR(product.price) : null;
 
   return (
-    <div className="container-hq pb-24 pt-8 lg:pt-12">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="text-[11px] uppercase tracking-[0.2em] text-taupe">
-        <a href="/" className="hover:text-espresso">
-          Home
-        </a>
-        <span className="mx-1.5 text-gold">/</span>
-        <a href={`/category/${product.category.slug}`} className="hover:text-espresso">
-          {product.category.name}
-        </a>
-        <span className="mx-1.5 text-gold">/</span>
-        <span className="text-espresso">{product.name}</span>
-      </nav>
+    <>
+      <div className="wrap pb-[var(--section)] pt-4 md:pt-6">
+        <nav aria-label="Breadcrumb" className="hidden pb-5 text-sm text-ink-soft md:block">
+          <ol className="flex flex-wrap gap-x-2">
+            <li>
+              <Link href="/" className="hover:text-ink">
+                Home
+              </Link>
+              <span aria-hidden="true" className="ml-2">
+                /
+              </span>
+            </li>
+            <li>
+              <Link href={`/category/${product.category.slug}`} className="hover:text-ink">
+                {categoryLabel(product.category)}
+              </Link>
+              <span aria-hidden="true" className="ml-2">
+                /
+              </span>
+            </li>
+            <li aria-current="page" className="text-ink">
+              {product.name}
+            </li>
+          </ol>
+        </nav>
 
-      <div className="mt-6 grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-        {/* ── Gallery ── */}
-        <div>
-          <div className="flex gap-4">
-            {/* Thumbnails (desktop) */}
-            {galleryImages.length > 1 && (
-              <div className="hidden w-20 shrink-0 flex-col gap-3 md:flex">
-                {galleryImages.map((src, i) => (
-                  <button
-                    key={src + i}
-                    onClick={() => setImageIdx(i)}
-                    className={cn(
-                      "relative aspect-[3/4] w-full overflow-hidden bg-cream border transition-colors",
-                      imageIdx === i ? "border-gold" : "border-transparent hover:border-border"
-                    )}
-                    aria-label={`View image ${i + 1}`}
-                  >
-                    <Image src={src} alt="" fill sizes="80px" className="object-cover" />
-                  </button>
-                ))}
+        <div className="grid gap-x-[clamp(2rem,5vw,5rem)] gap-y-7 md:grid-cols-[minmax(0,1.2fr)_minmax(20rem,1fr)]">
+          {/* Photography */}
+          <div className="-mt-4 min-w-0 self-start md:sticky md:top-[5.75rem] md:mt-0">
+            {photos.length > 0 ? (
+              <ProductGallery key={colour} images={photos} name={product.name} colour={colour || undefined} />
+            ) : (
+              <div className="flex aspect-[4/5] flex-col justify-end bg-shell p-8 md:p-12">
+                <p className="t-head max-w-[14ch]">Photographs to follow.</p>
+                <p className="mt-3 max-w-[38ch] text-ink-soft">
+                  Ask us about this piece and we will send you pictures directly.
+                </p>
               </div>
             )}
-            {/* Main image */}
-            <div className="relative aspect-[3/4] flex-1 overflow-hidden bg-cream">
-              {hasPhotos ? (
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={imageIdx}
-                    initial={reduce ? false : { opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="absolute inset-0"
-                  >
-                    <Image
-                      src={galleryImages[imageIdx]}
-                      alt={`${product.name} — view ${imageIdx + 1}`}
-                      fill
-                      priority
-                      sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
-                  <span className="h-px w-10 bg-gold" />
-                  <p className="font-display text-xl text-espresso">Photographs coming soon</p>
-                  <p className="text-[12.5px] text-taupe">
-                    Details and availability are being finalised. Enquire and we will share the
-                    full lookbook directly.
-                  </p>
-                </div>
-              )}
-              {product.badge && (
-                <span className="absolute left-4 top-4 bg-ivory/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-espresso">
-                  {product.badge}
-                </span>
-              )}
-            </div>
-          </div>
-          {/* Mobile thumbnails */}
-          {galleryImages.length > 1 && (
-            <div className="mt-3 flex gap-2.5 md:hidden">
-              {galleryImages.map((src, i) => (
-                <button
-                  key={src + i}
-                  onClick={() => setImageIdx(i)}
-                  className={cn(
-                    "relative aspect-[3/4] w-16 overflow-hidden bg-cream border",
-                    imageIdx === i ? "border-gold" : "border-transparent"
-                  )}
-                  aria-label={`View image ${i + 1}`}
-                >
-                  <Image src={src} alt="" fill sizes="64px" className="object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ── Info ── */}
-        <div className="lg:pt-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-taupe">
-            {product.category.name}
-          </p>
-          <h1 className="display-2 mt-2 text-espresso">{product.name}</h1>
-
-          <div className="mt-4 flex flex-wrap items-baseline gap-3">
-            {product.priceConfirmed && product.price > 0 ? (
-              <>
-                <p className="text-2xl font-semibold text-espresso">{formatINR(product.price)}</p>
-                {product.compareAtPrice && product.compareAtPrice > product.price && (
-                  <p className="text-[15px] text-taupe line-through">{formatINR(product.compareAtPrice)}</p>
-                )}
-                {product.compareAtPrice && product.compareAtPrice > product.price && (
-                  <span className="bg-champagne px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-gold-deep">
-                    Save {formatINR(product.compareAtPrice - product.price)}
-                  </span>
-                )}
-              </>
-            ) : (
-              <p className="text-xl font-semibold text-gold-deep">Price Pending</p>
-            )}
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-taupe">
-              {product.purchasable
-                ? AVAILABILITY_LABEL[normaliseAvailability(product.availability)]
-                : "Enquiry only"}
-            </span>
           </div>
 
-          {/* Colour */}
-          {product.colors.length > 0 && (
-            <div className="mt-8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-espresso">
-                Colour <span className="ml-1 font-normal normal-case tracking-normal text-taupe">— {color}</span>
+          {/* Information */}
+          <div className="min-w-0 md:max-w-[34rem]">
+            {badge && <p className="mb-2 text-[0.9375rem] text-olive">{badge}</p>}
+            <h1 className="t-title !text-[clamp(2.1rem,3.3vw,3.1rem)]">{product.name}</h1>
+            <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <p className="price text-[1.375rem] font-medium">
+                {price ?? "Price on request"}
+                {price && product.compareAtPrice && product.compareAtPrice > product.price && (
+                  <s className="ml-3 text-[1.0625rem] font-normal text-ink-soft">{formatINR(product.compareAtPrice)}</s>
+                )}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2.5">
-                {product.colors.map((c) => (
-                  <button
-                    key={c.name}
-                    onClick={() => chooseColor(c.name)}
-                    disabled={c.available === false}
-                    title={c.name}
-                    aria-label={`Colour ${c.name}`}
-                    aria-pressed={color === c.name}
-                    className={cn(
-                      "relative h-9 w-9 rounded-full border transition-all disabled:cursor-not-allowed disabled:opacity-40",
-                      color === c.name
-                        ? "border-gold ring-1 ring-gold ring-offset-2 ring-offset-ivory"
-                        : "border-espresso/20 hover:border-espresso/50"
-                    )}
-                    style={{
-                      background: c.hex2
-                        ? `linear-gradient(135deg, ${c.hex} 0 50%, ${c.hex2} 50% 100%)`
-                        : c.hex,
-                    }}
-                  />
-                ))}
-              </div>
+              <p className="flex items-center gap-2 text-[0.9375rem] text-olive">
+                <span className="size-2 rounded-full bg-olive" aria-hidden="true" />
+                {statusLabel(product)}
+              </p>
             </div>
-          )}
+            <p className="mt-5 max-w-[52ch] leading-relaxed text-ink-soft">{product.description}</p>
 
-          {/* Size */}
-          {product.sizes.length > 0 && (
-            <div className="mt-7">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-espresso">
-                  Size {size && <span className="ml-1 font-normal normal-case tracking-normal text-taupe">— {size}</span>}
-                </p>
-                <button
-                  onClick={() => setSizeGuideOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gold underline-offset-4 hover:underline"
-                >
-                  <Ruler className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  Size guide
-                </button>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {product.sizes.map((s) => {
-                  const optionExists = product.variants.some(
-                    (v) => v.size === s && v.color === cartColor
-                  );
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => {
-                        setSize(s);
-                        setQuantity(1);
-                      }}
-                      disabled={!optionExists}
-                      aria-pressed={size === s}
-                      className={cn(
-                        "h-11 min-w-12 border px-3 text-[13px] font-medium transition-all disabled:cursor-not-allowed disabled:border-border/50 disabled:text-taupe/50",
-                        size === s
-                          ? "border-espresso bg-espresso text-ivory"
-                          : "border-border text-espresso hover:border-espresso"
-                      )}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+            {/* Colour */}
+            {product.colors.length > 0 && (
+              <fieldset className="mt-8">
+                <legend className="text-[0.9375rem]">
+                  <span className="font-medium">Colour</span>
+                  <span className="text-ink-soft">: {colour}</span>
+                </legend>
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  {product.colors.map((c) => {
+                    const selected = c.name === colour;
+                    const unavailable = c.available === false;
+                    const thumb = c.images?.[0];
+                    return (
+                      <button
+                        key={c.name}
+                        type="button"
+                        onClick={() => chooseColour(c.name)}
+                        disabled={unavailable}
+                        aria-pressed={selected}
+                        aria-label={unavailable ? `${c.name}, unavailable` : c.name}
+                        title={c.name}
+                        className={cn(
+                          "relative overflow-hidden transition-shadow disabled:opacity-35",
+                          thumb ? "aspect-[3/4] w-[3.6rem] bg-shell" : "size-11 rounded-full",
+                          selected
+                            ? "shadow-[0_0_0_2px_var(--color-paper),0_0_0_3.5px_var(--color-ink)]"
+                            : "shadow-[0_0_0_1px_rgb(42_32_26/.14)] hover:shadow-[0_0_0_1px_var(--color-ink)]"
+                        )}
+                        style={thumb ? undefined : { background: swatchBackground(c) }}
+                      >
+                        {thumb && (
+                          <Image src={thumb} alt="" fill sizes="58px" className="object-cover" style={{ objectPosition: photoPosition(thumb) }} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
 
-          {product.sizeNotes && (
-            <p className="mt-4 text-[12.5px] leading-relaxed text-espresso/65">
-              <span className="font-semibold text-espresso">Measurements: </span>
-              {product.sizeNotes}
-            </p>
-          )}
-
-          {/* Quantity + availability */}
-          <div className="mt-7 flex flex-wrap items-center gap-6">
-            {product.purchasable && (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-espresso">Quantity</p>
-                <div className="mt-2 inline-flex items-center border border-border">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="flex h-11 w-11 items-center justify-center text-espresso hover:text-gold disabled:opacity-40"
-                    disabled={quantity <= 1}
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="w-10 text-center text-[15px] font-medium">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(Math.min(qtyMax, quantity + 1))}
-                    className="flex h-11 w-11 items-center justify-center text-espresso hover:text-gold disabled:opacity-40"
-                    disabled={!size || quantity >= qtyMax}
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="h-4 w-4" />
+            {/* Size */}
+            {product.sizes.length > 0 && (
+              <fieldset ref={sizeRef} className="mt-8 scroll-mt-32" aria-describedby={error ? "size-error" : undefined}>
+                <legend className="sr-only">{lengthSized ? "Length" : "Size"}</legend>
+                <div className="flex items-baseline justify-between gap-4 text-[0.9375rem]">
+                  <p>
+                    <span className="font-medium">{lengthSized ? "Length" : "Size"}</span>
+                    {size && <span className="text-ink-soft">: {size}</span>}
+                  </p>
+                  <button type="button" onClick={() => setGuideOpen(true)} className="link py-1">
+                    Size guide
                   </button>
                 </div>
-              </div>
+                <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2">
+                  {product.sizes.map((s) => {
+                    const ok = isVariantPurchasable(product, s, variantColour);
+                    return (
+                      <label
+                        key={s}
+                        className={cn(
+                          "relative flex h-[3.15rem] items-center justify-center border text-[0.9688rem] transition-colors",
+                          "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-olive",
+                          !ok && "!cursor-not-allowed border-sand text-ink-soft/60 line-through",
+                          ok && size === s && "border-ink bg-ink text-paper",
+                          ok && size !== s && "border-[#cbbba6] hover:border-ink",
+                          ok && error && !size && "border-clay"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="size"
+                          value={s}
+                          checked={size === s}
+                          disabled={!ok}
+                          onChange={() => {
+                            setSize(s);
+                            setQuantity(1);
+                            setError(null);
+                          }}
+                          className="sr-only"
+                          aria-label={ok ? s : `${s}, unavailable in ${colour}`}
+                        />
+                        {s}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
             )}
-            <p
-              className={cn(
-                "text-[12.5px]",
-                product.purchasable ? "text-espresso/60" : "font-medium text-gold-deep"
-              )}
-            >
-              {!product.purchasable
-                ? `${product.unavailableReason ?? "Enquiry only"} — enquiry only`
-                : product.trackStock
-                  ? selectedVariant && selectedVariant.stock <= 3
-                    ? `Only ${selectedVariant.stock} left in your size`
-                    : "In stock, ready to ship"
-                  : AVAILABILITY_LABEL[normaliseAvailability(product.availability)]}
-            </p>
-          </div>
-
-          {/* CTAs */}
-          <div className="mt-8 space-y-3">
-            {product.purchasable ? (
-              <>
-                <button
-                  onClick={() => handleAdd(false)}
-                  disabled={!canPurchase || adding}
-                  className="btn-hq-primary w-full"
-                >
-                  <ShoppingBag className="h-4 w-4" strokeWidth={1.5} />
-                  {variantAvailable ? "Add to Bag" : (purchaseNote ?? "Select a size")}
-                </button>
-                <button
-                  onClick={() => handleAdd(true)}
-                  disabled={!canPurchase || adding}
-                  className="btn-hq-outline w-full"
-                >
-                  <Zap className="h-4 w-4" strokeWidth={1.5} />
-                  Buy It Now
-                </button>
-              </>
-            ) : (
-              <a
-                href={enquiryUrl}
-                {...(enquiryUrl.startsWith("http")
-                  ? { target: "_blank", rel: "noopener noreferrer" }
-                  : {})}
-                className="btn-hq-primary w-full"
-              >
-                <MessageCircle className="h-4 w-4" strokeWidth={1.5} />
-                Enquire About This Piece
-              </a>
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  const added = wishlistToggle({
-                    productId: product.id,
-                    slug: product.slug,
-                    name: product.name,
-                    image: galleryImages[0] ?? "",
-                    price: product.price,
-                  });
-                  toast({
-                    title: added ? "Added to wishlist" : "Removed from wishlist",
-                    description: product.name,
-                  });
-                }}
-                className="btn-hq-outline flex-1 !border-espresso/20"
-              >
-                <Heart className={cn("h-4 w-4", wishlisted && "fill-gold text-gold")} strokeWidth={1.5} />
-                {wishlisted ? "Wishlisted" : "Wishlist"}
+            {product.sizeNotes && <p className="mt-3 text-[0.9375rem] text-ink-soft">{product.sizeNotes}</p>}
+            {product.sizes.length === 0 && (
+              <button type="button" onClick={() => setGuideOpen(true)} className="link mt-3 py-1 text-[0.9375rem]">
+                How sizing works
               </button>
-              {product.purchasable && (
-                <a
-                  href={enquiryUrl}
-                  {...(enquiryUrl.startsWith("http")
-                    ? { target: "_blank", rel: "noopener noreferrer" }
-                    : {})}
-                  className="btn-hq-outline flex-1 !border-espresso/20"
-                >
-                  <MessageCircle className="h-4 w-4" strokeWidth={1.5} />
-                  {isWhatsAppConfigured() ? "WhatsApp Inquiry" : "Ask a Question"}
-                </a>
+            )}
+            {error && (
+              <p id="size-error" role="alert" className="field-error">
+                {error}
+              </p>
+            )}
+
+            {/* Purchase */}
+            <div ref={ctaRef} className="mt-7">
+              {product.purchasable ? (
+                <>
+                  <div className="flex gap-2.5">
+                    <Quantity value={quantity} max={maxQty} onChange={(n) => setQuantity(Math.max(1, Math.min(maxQty, n)))} label="Quantity" large />
+                    <button type="button" onClick={() => addToBag()} className="btn btn-solid flex-1">
+                      Add to bag
+                    </button>
+                  </div>
+                  <button type="button" onClick={() => addToBag(true)} className="btn btn-line mt-2.5 w-full">
+                    Buy now
+                  </button>
+                  {product.trackStock && variant && variant.stock > 0 && variant.stock <= 3 && (
+                    <p className="mt-3 text-[0.9375rem] text-ink-soft">
+                      {variant.stock === 1 ? "One piece" : `${variant.stock} pieces`} in stock in this size.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="mb-4 border-l-2 border-olive pl-4 text-[0.9688rem]">{enquiryNote(product)}</p>
+                  <Link href={contactHref} className="btn btn-solid w-full">
+                    Enquire about this piece
+                  </Link>
+                </>
               )}
+              <div className="mt-3 flex flex-wrap items-center gap-x-7 gap-y-1 text-[0.9375rem]">
+                <WishlistButton product={product} image={photos[0]} className="inline-flex min-h-11 items-center gap-2.5 hover:text-olive">
+                  {(saved) => <span>{saved ? "Saved to wishlist" : "Save to wishlist"}</span>}
+                </WishlistButton>
+                {whatsappHref ? (
+                  <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="link py-2">
+                    Ask on WhatsApp
+                  </a>
+                ) : (
+                  product.purchasable && (
+                    <Link href={contactHref} className="link py-2">
+                      Ask a question
+                    </Link>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Answers customers look for before buying */}
+            <dl className="mt-6 grid gap-x-6 gap-y-4 border-y border-sand py-5 text-[0.9375rem] sm:grid-cols-3">
+              <div>
+                <dt className="font-medium">Shipping</dt>
+                <dd className="price mt-0.5 text-ink-soft">
+                  {formatINR(SHIPPING_FEE)}, free above {formatINR(FREE_SHIPPING_THRESHOLD)}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium">Payment</dt>
+                <dd className="mt-0.5 text-ink-soft">Cash on delivery or bank transfer</dd>
+              </div>
+              <div>
+                <dt className="font-medium">Before dispatch</dt>
+                <dd className="mt-0.5 text-ink-soft">We contact you to confirm your order</dd>
+              </div>
+            </dl>
+
+            <div className="divide-y divide-sand border-b border-sand">
+              {(product.fabricDetails || product.careInstructions) && (
+                <details className="fold" open>
+                  <summary>{product.careInstructions ? "Fabric and care" : "Fabric"}</summary>
+                  <div className="space-y-2 pb-5 text-ink-soft">
+                    {product.fabricDetails && <p>{product.fabricDetails}</p>}
+                    {product.careInstructions && <p>{product.careInstructions}</p>}
+                  </div>
+                </details>
+              )}
+              <details className="fold">
+                <summary>Size and fit</summary>
+                <div className="space-y-2 pb-5 text-ink-soft">
+                  {product.sizeNotes && <p>{product.sizeNotes}</p>}
+                  <p>
+                    {lengthSized
+                      ? "Abaya sizes are garment lengths. "
+                      : product.sizes.length
+                        ? "Between two sizes? Ask us before you order. "
+                        : "We confirm sizing with you personally. "}
+                    <button type="button" onClick={() => setGuideOpen(true)} className="link text-ink">
+                      Open the size guide
+                    </button>
+                  </p>
+                  <p>
+                    Need something made to your measure?{" "}
+                    <Link href="/custom-measurements" className="link text-ink">
+                      Send us your measurements
+                    </Link>
+                  </p>
+                </div>
+              </details>
+              <details className="fold">
+                <summary>Shipping</summary>
+                <div className="space-y-2 pb-5 text-ink-soft">
+                  <p className="price">
+                    {formatINR(SHIPPING_FEE)} per order, free on orders of {formatINR(FREE_SHIPPING_THRESHOLD)} and above.
+                    Dispatch time depends on the piece and where you live; we share it when we confirm your order.
+                  </p>
+                  <p>
+                    <Link href="/shipping-policy" className="link text-ink">
+                      Read the shipping policy
+                    </Link>
+                  </p>
+                </div>
+              </details>
+              <details className="fold">
+                <summary>Returns and exchanges</summary>
+                <div className="space-y-2 pb-5 text-ink-soft">
+                  <p>
+                    Size exchanges are supported on unworn, unwashed pieces with their original tags. Made-to-measure and
+                    altered pieces are exchanged only for manufacturing defects.
+                  </p>
+                  <p>
+                    <Link href="/returns-policy" className="link text-ink">
+                      Read the returns and exchange policy
+                    </Link>
+                  </p>
+                </div>
+              </details>
             </div>
           </div>
-
-          {/* Accordions */}
-          <Accordion type="multiple" defaultValue={["description"]} className="mt-10 border-t border-border">
-            <AccordionItem value="description">
-              <AccordionTrigger className="text-[12px] font-semibold uppercase tracking-[0.2em] text-espresso hover:text-gold hover:no-underline">
-                Description
-              </AccordionTrigger>
-              <AccordionContent className="text-[14px] leading-relaxed text-espresso/75">
-                {product.description}
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="fabric">
-              <AccordionTrigger className="text-[12px] font-semibold uppercase tracking-[0.2em] text-espresso hover:text-gold hover:no-underline">
-                Fabric &amp; Care
-              </AccordionTrigger>
-              <AccordionContent className="text-[14px] leading-relaxed text-espresso/75">
-                {product.fabricDetails && <p>{product.fabricDetails}</p>}
-                {product.careInstructions && (
-                  <p className="mt-2">
-                    <span className="font-semibold text-espresso">Care:</span> {product.careInstructions}
-                  </p>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="delivery">
-              <AccordionTrigger className="text-[12px] font-semibold uppercase tracking-[0.2em] text-espresso hover:text-gold hover:no-underline">
-                Delivery &amp; Returns
-              </AccordionTrigger>
-              <AccordionContent className="text-[14px] leading-relaxed text-espresso/75">
-                <p>
-                  Orders are confirmed personally before dispatch. Shipping timelines and charges are
-                  shown at checkout — complimentary shipping on orders above ₹4,999.
-                </p>
-                <p className="mt-2">
-                  Questions about this piece? Use WhatsApp inquiry above — we reply with fabric
-                  details, fit advice and availability.
-                </p>
-                <p className="mt-2">
-                  Read our{" "}
-                  <a href="/shipping-policy" className="underline decoration-gold underline-offset-2">
-                    shipping
-                  </a>{" "}
-                  and{" "}
-                  <a href="/returns-policy" className="underline decoration-gold underline-offset-2">
-                    returns
-                  </a>{" "}
-                  policies.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
         </div>
       </div>
 
-      <SizeGuideDialog open={sizeGuideOpen} onOpenChange={setSizeGuideOpen} />
-    </div>
+      {/* Mobile purchase bar, only once the main button has scrolled away */}
+      <div
+        data-buybar
+        inert={ctaVisible}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 border-t border-sand bg-paper px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 transition-transform duration-300 md:hidden",
+          ctaVisible ? "translate-y-full" : "translate-y-0"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.9375rem] font-medium leading-tight">{product.name}</p>
+            <p className="price mt-0.5 truncate text-sm text-ink-soft">
+              {[price ?? "Price on request", colour, size && (lengthSized ? `Length ${size}` : `Size ${size}`)]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+          </div>
+          {product.purchasable ? (
+            <button type="button" onClick={() => addToBag()} className="btn btn-solid !min-h-12 shrink-0 !px-6">
+              {size ? "Add to bag" : lengthSized ? "Choose length" : "Choose size"}
+            </button>
+          ) : (
+            <Link href={contactHref} className="btn btn-solid !min-h-12 shrink-0 !px-6">
+              Enquire
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <SizeGuide product={product} open={guideOpen} onClose={() => setGuideOpen(false)} />
+    </>
   );
 }

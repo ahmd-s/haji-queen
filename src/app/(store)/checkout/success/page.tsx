@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, MessageCircle } from "lucide-react";
 import { isWhatsAppConfigured, waGeneralLink } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
@@ -21,51 +20,38 @@ export default async function CheckoutSuccessPage({
   const { order } = await searchParams;
 
   return (
-    <div className="container-hq flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
-      <span className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-gold/50">
-        <CheckCircle2 className="h-7 w-7 text-gold" strokeWidth={1.5} />
-      </span>
-      <h1 className="display-1 mt-6 text-espresso">Thank You</h1>
-      <p className="mt-3 max-w-md text-[15px] leading-relaxed text-espresso/70">
-        Your order has been received by our team.
-      </p>
+    <div className="wrap-text min-h-[64vh] pb-[var(--section)] pt-12 md:pt-20">
+      <h1 className="t-title">Thank you. We have your order.</h1>
       {order && (
-        <p className="mt-5 border border-border bg-cream/50 px-6 py-3 text-[13px] tracking-wide text-espresso">
-          Order number <span className="font-bold text-gold-deep">{order}</span>
+        <p className="mt-7 inline-block bg-shell px-6 py-4">
+          Order number <span className="price ml-1 font-medium">{order}</span>
         </p>
       )}
-      <div className="mt-8 max-w-md space-y-2.5 text-[13.5px] leading-relaxed text-espresso/65">
-        <p>
-          We will confirm your order, sizes and delivery details personally via phone, email or
-          WhatsApp before dispatch.
-        </p>
-        {order && (
-          <p>
-            Keep your order number to{" "}
-            <Link href="/account" className="underline decoration-gold underline-offset-2 hover:text-gold">
-              track this order
-            </Link>{" "}
-            anytime.
-          </p>
-        )}
-        <p className="text-taupe">
-          Note: this confirmation is not a payment receipt. If you chose bank transfer, our team
-          will share the account details with you.
-        </p>
-      </div>
-      <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-        <Link href="/shop" className="btn-hq-primary">
-          Continue Shopping
+
+      <h2 className="t-sub mt-12">What happens next</h2>
+      <ol className="mt-5 max-w-[54ch] divide-y divide-sand border-y border-sand">
+        {[
+          "We contact you by phone, email or WhatsApp to confirm your pieces, sizes and address.",
+          "If you chose bank transfer, we share the account details with you then. This page is not a payment receipt.",
+          "Once everything is confirmed, your order is prepared and dispatched.",
+        ].map((t, i) => (
+          <li key={t} className="flex gap-5 py-4">
+            <span className="price font-medium">{i + 1}</span>
+            <span className="text-ink-soft">{t}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-9 flex flex-wrap items-center gap-3">
+        <Link href="/shop" className="btn btn-solid">
+          Continue shopping
+        </Link>
+        <Link href="/account" className="btn btn-line">
+          Track this order
         </Link>
         {isWhatsAppConfigured() && (
-          <a
-            href={waGeneralLink()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-hq-outline"
-          >
-            <MessageCircle className="h-4 w-4" strokeWidth={1.5} />
-            Ask About My Order
+          <a href={waGeneralLink()} target="_blank" rel="noopener noreferrer" className="link px-3 py-2">
+            Ask about my order
           </a>
         )}
       </div>

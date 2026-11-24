@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { usePathname } from "next/navigation";
 import { isWhatsAppConfigured, waGeneralLink } from "@/lib/whatsapp";
 
 function WhatsAppGlyph({ className }: { className?: string }) {
@@ -13,36 +12,19 @@ function WhatsAppGlyph({ className }: { className?: string }) {
 }
 
 export function WhatsAppFloat() {
-  const [visible, setVisible] = useState(false);
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 240);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
+  const pathname = usePathname();
   if (!isWhatsAppConfigured()) return null;
-
+  // Product pages carry their own enquiry link and a sticky buy bar on mobile.
+  const onProduct = pathname.startsWith("/product/") || pathname.startsWith("/checkout");
   return (
-    <motion.a
+    <a
       href={waGeneralLink()}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with Haji Queens on WhatsApp"
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={
-        visible && !reduceMotion
-          ? { opacity: 1, scale: 1 }
-          : { opacity: 0, scale: 0.8, pointerEvents: "none" }
-      }
-      whileHover={{ scale: 1.06 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className="fixed bottom-5 right-5 z-[60] flex h-13 w-13 items-center justify-center rounded-full bg-[#1f9d55] text-white shadow-[0_8px_24px_rgba(48,40,32,0.25)] hover:shadow-[0_10px_28px_rgba(48,40,32,0.35)]"
-      style={{ width: 52, height: 52 }}
+      className={`fixed bottom-5 right-5 z-30 size-13 items-center justify-center rounded-full bg-olive text-paper transition-colors hover:bg-ink ${onProduct ? "hidden md:flex" : "flex"}`}
     >
-      <WhatsAppGlyph className="h-6 w-6" />
-    </motion.a>
+      <WhatsAppGlyph className="size-6" />
+    </a>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, MessageCircle, Ruler } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { isWhatsAppConfigured, waLink } from "@/lib/whatsapp";
-import { cn } from "@/lib/utils";
+import { EDITORIAL } from "@/lib/storefront";
 
 const GARMENT_TYPES = [
   "Abaya",
@@ -107,78 +107,71 @@ export default function CustomMeasurementsPage() {
   );
 
   return (
-    <div className="pb-24">
-      {/* Header */}
-      <header className="border-b border-border bg-cream/40">
-        <div className="container-hq-narrow py-14 text-center lg:py-20">
-          <p className="kicker justify-center">Custom Measurements</p>
-          <h1 className="display-1 mt-4 text-espresso">Your Fit. Your Way.</h1>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-espresso/70">
-            Every woman deserves clothing that feels as beautiful as it looks. Share your
-            measurements and let us assist you with your sizing requirements.
+    <div className="pb-[var(--section)]">
+      <header className="grid bg-shell md:grid-cols-[1.35fr_1fr]">
+        <div className="flex flex-col justify-end px-[var(--gutter)] py-[clamp(3rem,7vw,6.5rem)]">
+          <h1 className="t-hero max-w-[12ch]">Your fit, your way</h1>
+          <p className="t-body mt-6">
+            Clothing should feel as beautiful as it looks. Share your measurements and we will help you with sizing,
+            alterations and made-to-measure pieces.
           </p>
+        </div>
+        <div className="photo hidden md:block md:min-h-[30rem]">
+          <Image
+            src={EDITORIAL.measure}
+            alt="Close view of a ruffled white blouse gathered at the cuff"
+            fill
+            loading="eager"
+            sizes="43vw"
+            style={{ objectPosition: "50% 35%" }}
+          />
         </div>
       </header>
 
-      <div className="container-hq-narrow mt-12">
-        <AnimatePresence mode="wait">
-          {success ? (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="border border-gold/40 bg-champagne/25 p-10 text-center"
-            >
-              <CheckCircle2 className="mx-auto h-10 w-10 text-gold" strokeWidth={1.5} />
-              <h2 className="display-3 mt-4 text-espresso">Request Received</h2>
-              <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-espresso/70">
-                {success.message}
-              </p>
-              <p className="mx-auto mt-2 max-w-md text-[12.5px] text-taupe">
-                Your measurements are stored securely and visible only to our fit team.
-              </p>
-              <div className="mt-7 flex flex-wrap items-center justify-center gap-4">
-                {isWhatsAppConfigured() && (
-                  <a href={waFollowUp} target="_blank" rel="noopener noreferrer" className="btn-hq-primary">
-                    <MessageCircle className="h-4 w-4" strokeWidth={1.5} />
-                    Continue on WhatsApp
-                  </a>
-                )}
-                <button onClick={() => { setSuccess(null); setForm(INITIAL); }} className="btn-hq-outline">
-                  New Request
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.form
-              key="form"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              onSubmit={submit}
-              className="space-y-12"
-              noValidate
-            >
+      <div className="wrap-text mt-12 md:mt-16">
+        {success ? (
+          <div className="fade-in bg-shell p-7 sm:p-12" role="status">
+            <h2 className="t-head">We have your measurements.</h2>
+            <p className="t-body mt-3">
+              Our team will contact you to confirm the details. This is a request, not a confirmed appointment yet.
+            </p>
+            <p className="mt-3 text-[0.9375rem] text-ink-soft">
+              Your measurements are stored securely and used only to help with your sizing.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              {isWhatsAppConfigured() && (
+                <a href={waFollowUp} target="_blank" rel="noopener noreferrer" className="btn btn-solid">
+                  Continue on WhatsApp
+                </a>
+              )}
+              <button type="button" onClick={() => { setSuccess(null); setForm(INITIAL); }} className="btn btn-line">
+                Send another request
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-14" noValidate>
               {/* Personal details */}
               <section aria-labelledby="pd-heading">
-                <h2 id="pd-heading" className="font-display text-2xl text-espresso">
-                  Personal Details
+                <h2 id="pd-heading" className="t-sub">
+                  Your details
                 </h2>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="fullName" className="field-label">Full name *</label>
-                    <input id="fullName" className="field-hq" value={form.fullName} onChange={set("fullName")} required autoComplete="name" />
+                    <label htmlFor="fullName" className="label">Full name</label>
+                    <input id="fullName" className="field" value={form.fullName} onChange={set("fullName")} required autoComplete="name" />
                   </div>
                   <div>
-                    <label htmlFor="mphone" className="field-label">Phone number *</label>
-                    <input id="mphone" className="field-hq" value={form.phone} onChange={set("phone")} placeholder="+91 …" inputMode="tel" required autoComplete="tel" />
+                    <label htmlFor="mphone" className="label">Phone number</label>
+                    <input id="mphone" className="field" value={form.phone} onChange={set("phone")} placeholder="+91 …" inputMode="tel" required autoComplete="tel" />
                   </div>
                   <div>
-                    <label htmlFor="memail" className="field-label">Email</label>
-                    <input id="memail" type="email" className="field-hq" value={form.email} onChange={set("email")} autoComplete="email" />
+                    <label htmlFor="memail" className="label">Email</label>
+                    <input id="memail" type="email" className="field" value={form.email} onChange={set("email")} autoComplete="email" />
                   </div>
                   <div>
-                    <label htmlFor="preferredContact" className="field-label">Preferred contact method</label>
-                    <select id="preferredContact" className="field-hq" value={form.preferredContact} onChange={set("preferredContact")}>
+                    <label htmlFor="preferredContact" className="label">Preferred contact method</label>
+                    <select id="preferredContact" className="field" value={form.preferredContact} onChange={set("preferredContact")}>
                       <option value="WHATSAPP">WhatsApp</option>
                       <option value="PHONE">Phone call</option>
                       <option value="EMAIL">Email</option>
@@ -189,27 +182,27 @@ export default function CustomMeasurementsPage() {
 
               {/* Garment preferences */}
               <section aria-labelledby="gp-heading">
-                <h2 id="gp-heading" className="font-display text-2xl text-espresso">
-                  Garment Preferences
+                <h2 id="gp-heading" className="t-sub">
+                  The garment
                 </h2>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="garmentType" className="field-label">Garment type *</label>
-                    <select id="garmentType" className="field-hq" value={form.garmentType} onChange={set("garmentType")}>
+                    <label htmlFor="garmentType" className="label">Garment type</label>
+                    <select id="garmentType" className="field" value={form.garmentType} onChange={set("garmentType")}>
                       {GARMENT_TYPES.map((g) => (
                         <option key={g} value={g}>{g}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="colorPreference" className="field-label">Preferred colour</label>
-                    <input id="colorPreference" className="field-hq" value={form.colorPreference} onChange={set("colorPreference")} placeholder="e.g. Onyx black, champagne…" />
+                    <label htmlFor="colorPreference" className="label">Preferred colour</label>
+                    <input id="colorPreference" className="field" value={form.colorPreference} onChange={set("colorPreference")} placeholder="e.g. Onyx black, champagne…" />
                   </div>
                   <div>
-                    <label htmlFor="sizingPreference" className="field-label">Sizing</label>
+                    <label htmlFor="sizingPreference" className="label">Sizing</label>
                     <select
                       id="sizingPreference"
-                      className="field-hq"
+                      className="field"
                       value={form.sizingPreference}
                       onChange={(e) => setForm((f) => ({ ...f, sizingPreference: e.target.value as "STANDARD" | "CUSTOM" }))}
                     >
@@ -219,8 +212,8 @@ export default function CustomMeasurementsPage() {
                   </div>
                   {form.sizingPreference === "STANDARD" && (
                     <div>
-                      <label htmlFor="standardSize" className="field-label">Your usual size</label>
-                      <select id="standardSize" className="field-hq" value={form.standardSize} onChange={set("standardSize")}>
+                      <label htmlFor="standardSize" className="label">Your usual size</label>
+                      <select id="standardSize" className="field" value={form.standardSize} onChange={set("standardSize")}>
                         {["XS", "S", "M", "L", "XL"].map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
@@ -228,8 +221,8 @@ export default function CustomMeasurementsPage() {
                     </div>
                   )}
                   <div className="sm:col-span-2">
-                    <label htmlFor="designNotes" className="field-label">Preferred design</label>
-                    <textarea id="designNotes" className="field-hq h-20 py-2.5" value={form.designNotes} onChange={set("designNotes")} placeholder="Describe the style you have in mind — silhouette, occasion, details you love…" />
+                    <label htmlFor="designNotes" className="label">Preferred design</label>
+                    <textarea id="designNotes" className="field min-h-24" value={form.designNotes} onChange={set("designNotes")} placeholder="Describe the style you have in mind: silhouette, occasion, details you love…" />
                   </div>
                 </div>
               </section>
@@ -237,91 +230,88 @@ export default function CustomMeasurementsPage() {
               {/* Measurements */}
               <section aria-labelledby="m-heading">
                 <div className="flex items-center justify-between gap-4">
-                  <h2 id="m-heading" className="font-display text-2xl text-espresso">
+                  <h2 id="m-heading" className="t-sub">
                     Measurements
                   </h2>
-                  <p className="hidden items-center gap-1.5 text-[12px] text-taupe sm:flex">
-                    <Ruler className="h-3.5 w-3.5" /> Inches or cm — whatever is easiest
-                  </p>
+                  <p className="hidden text-[0.9375rem] text-ink-soft sm:block">Inches or centimetres, whichever is easier</p>
                 </div>
-                <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <div className="mt-5 grid gap-5 sm:grid-cols-3">
                   {MEASUREMENT_FIELDS.map((f) => (
                     <div key={f.key}>
-                      <label htmlFor={f.key} className="field-label">{f.label}</label>
-                      <input id={f.key} className="field-hq" value={form[f.key] ?? ""} onChange={set(f.key)} placeholder={f.hint} />
+                      <label htmlFor={f.key} className="label">{f.label}</label>
+                      <input id={f.key} className="field" value={form[f.key] ?? ""} onChange={set(f.key)} placeholder={f.hint} />
                     </div>
                   ))}
                   <div>
-                    <label htmlFor="otherMeasurements" className="field-label">Other measurements</label>
-                    <input id="otherMeasurements" className="field-hq" value={form.otherMeasurements ?? ""} onChange={set("otherMeasurements")} placeholder="Anything else we should know" />
+                    <label htmlFor="otherMeasurements" className="label">Other measurements</label>
+                    <input id="otherMeasurements" className="field" value={form.otherMeasurements ?? ""} onChange={set("otherMeasurements")} placeholder="Anything else we should know" />
                   </div>
                   <div className="sm:col-span-3">
-                    <label htmlFor="instructions" className="field-label">Additional instructions</label>
-                    <textarea id="instructions" className="field-hq h-20 py-2.5" value={form.instructions} onChange={set("instructions")} placeholder="Fit preferences, concerns, reference notes…" />
+                    <label htmlFor="instructions" className="label">Additional instructions</label>
+                    <textarea id="instructions" className="field min-h-24" value={form.instructions} onChange={set("instructions")} placeholder="Fit preferences, concerns, reference notes…" />
                   </div>
                 </div>
               </section>
 
               {/* Consultation */}
               <section aria-labelledby="c-heading">
-                <h2 id="c-heading" className="font-display text-2xl text-espresso">
-                  Preferred Consultation
+                <h2 id="c-heading" className="t-sub">
+                  A time to talk
                 </h2>
-                <p className="mt-2 text-[13px] text-taupe">
-                  Pick a convenient slot — we will confirm availability before it is final.
+                <p className="mt-2 text-[0.9375rem] text-ink-soft">
+                  Choose a time that suits you. We confirm availability before it is final.
                 </p>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="consultationDate" className="field-label">Preferred date</label>
-                    <input id="consultationDate" type="date" className="field-hq" value={form.consultationDate} onChange={set("consultationDate")} min={new Date().toISOString().slice(0, 10)} />
+                    <label htmlFor="consultationDate" className="label">Preferred date</label>
+                    <input id="consultationDate" type="date" className="field" value={form.consultationDate} onChange={set("consultationDate")} min={new Date().toISOString().slice(0, 10)} />
                   </div>
                   <div>
-                    <label htmlFor="consultationTime" className="field-label">Preferred time</label>
-                    <input id="consultationTime" type="time" className="field-hq" value={form.consultationTime} onChange={set("consultationTime")} />
+                    <label htmlFor="consultationTime" className="label">Preferred time</label>
+                    <input id="consultationTime" type="time" className="field" value={form.consultationTime} onChange={set("consultationTime")} />
                   </div>
                 </div>
                 <div className="mt-4">
-                  <label htmlFor="referenceImageUrl" className="field-label">Reference image link (optional)</label>
-                  <input id="referenceImageUrl" className="field-hq" value={form.referenceImageUrl ?? ""} onChange={set("referenceImageUrl")} placeholder="Paste a link to a style you love" />
+                  <label htmlFor="referenceImageUrl" className="label">Reference image link (optional)</label>
+                  <input id="referenceImageUrl" className="field" value={form.referenceImageUrl ?? ""} onChange={set("referenceImageUrl")} placeholder="Paste a link to a style you love" />
                 </div>
               </section>
 
               {/* Consent */}
-              <section className="border border-border bg-cream/40 p-5">
-                <label className="flex cursor-pointer items-start gap-3 text-[13.5px] leading-relaxed text-espresso/80">
+              <section className="bg-shell p-5 sm:p-7">
+                <label className="flex cursor-pointer items-start gap-3 text-[0.9375rem] leading-relaxed text-ink-soft">
                   <input
                     type="checkbox"
                     checked={form.consent}
                     onChange={(e) => setForm((f) => ({ ...f, consent: e.target.checked }))}
-                    className="mt-1 h-4 w-4 accent-[#b58a36]"
+                    className="mt-0.5 size-5 shrink-0 accent-[#2a201a]"
                   />
                   <span>
                     I understand my measurements are sensitive personal information. I consent to
                     Haji Queens storing them securely and using them only to assist with my sizing,
                     alterations and made-to-measure requests. Access is restricted to authorised
                     staff. See our{" "}
-                    <a href="/privacy-policy" className="underline decoration-gold underline-offset-2">privacy policy</a>.
+                    <a href="/privacy-policy" className="link text-ink">privacy policy</a>.
                   </span>
                 </label>
               </section>
 
               {error && (
-                <p className="border border-destructive/30 bg-destructive/5 p-3 text-[13px] text-destructive">
+                <p role="alert" className="border-l-2 border-clay bg-shell p-4 text-[0.9375rem] text-clay">
                   {error}
                 </p>
               )}
 
               <div className="flex flex-wrap items-center gap-4">
-                <button type="submit" disabled={submitting} className="btn-hq-primary">
-                  {submitting ? "Sending…" : "Submit Measurement Request"}
+                <button type="submit" disabled={submitting} className="btn btn-solid">
+                  {submitting ? "Sending" : "Send my measurements"}
                 </button>
-                <p className="text-[12px] text-taupe">
-                  This is a request — our team will confirm your consultation personally.
+                <p className="text-[0.9375rem] text-ink-soft">
+                  This is a request. We confirm your consultation with you personally.
                 </p>
               </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -1,13 +1,15 @@
-import { SITE_NAME } from "@/lib/site";
+import Link from "next/link";
+import { formatINR } from "@/lib/money";
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, SITE_NAME } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 /**
- * Policy page templates. Copy is honest and generic — the business should
- * review and replace with verified operational details before launch.
+ * Policy copy. The business should review it and replace it with verified
+ * operational details; nothing here should promise more than is delivered.
  */
 export const POLICIES = {
   "shipping-policy": {
     title: "Shipping Policy",
-    updated: "V1 template — to be finalised with verified logistics details",
     sections: [
       {
         h: "Order Confirmation",
@@ -24,20 +26,19 @@ export const POLICIES = {
       {
         h: "Shipping Charges",
         p: [
-          `Shipping is calculated at checkout. Complimentary shipping applies to orders above ₹4,999 (amount configurable in the store settings). Any final adjustment is confirmed with you before dispatch.`,
+          `Shipping is ${formatINR(SHIPPING_FEE)} per order, and free on orders of ${formatINR(FREE_SHIPPING_THRESHOLD)} and above. The charge is shown at checkout before you place your order. Any final adjustment is confirmed with you before dispatch.`,
         ],
       },
       {
         h: "Tracking & Support",
         p: [
-          "You can track your order anytime via our order tracking page using your order number. Questions? Message us on WhatsApp — we reply personally.",
+          "You can track your order anytime via our order tracking page using your order number. Questions? Contact us and we will reply personally.",
         ],
       },
     ],
   },
   "returns-policy": {
     title: "Returns & Exchange Policy",
-    updated: "V1 template — to be finalised with verified operational details",
     sections: [
       {
         h: "Our Approach",
@@ -60,14 +61,13 @@ export const POLICIES = {
       {
         h: "How To Request",
         p: [
-          "Message us on WhatsApp or email with your order number. Our team will guide you through the next steps personally.",
+          "Contact us with your order number. Our team will guide you through the next steps personally.",
         ],
       },
     ],
   },
   "privacy-policy": {
     title: "Privacy Policy",
-    updated: "V1 template — review with your data-protection obligations before launch",
     sections: [
       {
         h: "What We Collect",
@@ -103,7 +103,6 @@ export const POLICIES = {
   },
   terms: {
     title: "Terms & Conditions",
-    updated: "V1 template — review with legal counsel before launch",
     sections: [
       {
         h: "The Service",
@@ -141,24 +140,52 @@ export const POLICIES = {
 
 export type PolicySlug = keyof typeof POLICIES;
 
+const NAV: { slug: PolicySlug; label: string }[] = [
+  { slug: "shipping-policy", label: "Shipping" },
+  { slug: "returns-policy", label: "Returns and exchanges" },
+  { slug: "privacy-policy", label: "Privacy" },
+  { slug: "terms", label: "Terms" },
+];
+
 export function PolicyPage({ slug }: { slug: PolicySlug }) {
   const policy = POLICIES[slug];
   return (
-    <div className="container-hq-narrow py-14 lg:py-20">
-      <p className="kicker">Client Care</p>
-      <h1 className="display-1 mt-4 text-espresso">{policy.title}</h1>
-      <p className="mt-3 text-[12px] uppercase tracking-[0.18em] text-taupe">{policy.updated}</p>
-      <div className="mt-10 max-w-2xl space-y-9">
-        {policy.sections.map((s) => (
-          <section key={s.h}>
-            <h2 className="font-display text-2xl text-espresso">{s.h}</h2>
-            {s.p.map((para, i) => (
-              <p key={i} className="mt-3 text-[14.5px] leading-relaxed text-espresso/75">
-                {para}
-              </p>
+    <div className="wrap pb-[var(--section)] pt-10 md:pt-16">
+      <h1 className="t-title">{policy.title}</h1>
+      <div className="mt-9 grid gap-x-16 gap-y-10 md:mt-14 md:grid-cols-[14rem_1fr]">
+        <nav aria-label="Policies" className="h-fit md:sticky md:top-28">
+          <ul className="flex flex-wrap gap-x-6 md:block">
+            {NAV.map((n) => (
+              <li key={n.slug}>
+                <Link
+                  href={`/${n.slug}`}
+                  aria-current={n.slug === slug ? "page" : undefined}
+                  className={cn("inline-block py-1.5", n.slug === slug ? "font-medium" : "text-ink-soft hover:text-ink")}
+                >
+                  {n.label}
+                </Link>
+              </li>
             ))}
-          </section>
-        ))}
+          </ul>
+        </nav>
+        <div className="max-w-[44rem] divide-y divide-sand border-t border-sand">
+          {policy.sections.map((s) => (
+            <section key={s.h} className="py-7">
+              <h2 className="t-sub">{s.h}</h2>
+              {s.p.map((para) => (
+                <p key={para} className="t-body mt-3">
+                  {para}
+                </p>
+              ))}
+            </section>
+          ))}
+          <p className="py-7">
+            A question this page does not answer?{" "}
+            <Link href="/contact" className="link">
+              Ask us
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

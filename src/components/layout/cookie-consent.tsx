@@ -2,23 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
 import { CONSENT_KEY, flushPixel } from "@/lib/pixel";
+import { META_PIXEL_ID } from "@/lib/site";
 
 /**
- * Cookie / marketing consent banner.
- * Meta Pixel fires only after explicit consent ("Accept").
- * Privacy policy link included per disclosure requirements.
+ * Marketing consent. The Meta Pixel fires only after "Allow". When no pixel is
+ * configured the site sets no marketing cookies, so there is nothing to ask.
  */
 export function CookieConsent() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const existing = window.localStorage.getItem(CONSENT_KEY);
-    if (!existing) {
-      const t = setTimeout(() => setShow(true), 1400);
-      return () => clearTimeout(t);
-    }
+    if (!META_PIXEL_ID || window.localStorage.getItem(CONSENT_KEY)) return;
+    const t = setTimeout(() => setShow(true), 2500);
+    return () => clearTimeout(t);
   }, []);
 
   const decide = (granted: boolean) => {
@@ -27,39 +24,26 @@ export function CookieConsent() {
     if (granted) flushPixel();
   };
 
+  if (!show) return null;
   return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 24 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="fixed bottom-4 left-4 right-4 z-[65] mx-auto max-w-xl border border-border bg-white p-5 shadow-[0_16px_48px_rgba(48,40,32,0.16)] sm:bottom-6"
-          role="dialog"
-          aria-label="Cookie preferences"
-        >
-          <p className="text-[13px] leading-relaxed text-espresso/85">
-            We use cookies to improve your browsing experience and — only with your permission —
-            to understand how our collections reach you. See our{" "}
-            <Link href="/privacy-policy" className="underline decoration-gold underline-offset-2 hover:text-gold">
-              Privacy Policy
-            </Link>
-            .
-          </p>
-          <div className="mt-4 flex items-center gap-3">
-            <button onClick={() => decide(true)} className="btn-hq-primary flex-1 !py-3 !px-5">
-              Accept
-            </button>
-            <button
-              onClick={() => decide(false)}
-              className="btn-hq-outline flex-1 !py-3 !px-5"
-            >
-              Essential Only
-            </button>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <section
+      aria-label="Cookie preferences"
+      className="fade-in fixed inset-x-3 bottom-3 z-[65] border border-sand bg-paper p-5 sm:left-6 sm:right-auto sm:max-w-sm"
+    >
+      <p className="text-[0.9375rem] leading-relaxed">
+        May we use marketing cookies to see how our collections reach you? The shop works fully without them.{" "}
+        <Link href="/privacy-policy" className="link">
+          Privacy policy
+        </Link>
+      </p>
+      <div className="mt-4 grid grid-cols-2 gap-2.5">
+        <button type="button" onClick={() => decide(false)} className="btn btn-line !min-h-11 !px-3">
+          Essential only
+        </button>
+        <button type="button" onClick={() => decide(true)} className="btn btn-solid !min-h-11 !px-3">
+          Allow
+        </button>
+      </div>
+    </section>
   );
 }

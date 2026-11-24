@@ -14,6 +14,18 @@
   --color-taupe: #a99b88;
   --color-charcoal: #292929;
 
+  /* Storefront palette — drawn from the catalogue photography: plaster walls,
+     cream upholstery, espresso cloth, mehndi green, brushed brass. Additive:
+     the admin keeps the original palette above. */
+  --color-paper: #f8f4ed;
+  --color-shell: #efe7db;
+  --color-sand: #dccfbd;
+  --color-ink: #2a201a;
+  --color-ink-soft: #685a4e;
+  --color-olive: #50553a;
+  --color-brass: #96764a;
+  --color-clay: #97321f;
+
   /* Typography */
   --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
   --font-sans: var(--font-manrope), Manrope, "Segoe UI", sans-serif;

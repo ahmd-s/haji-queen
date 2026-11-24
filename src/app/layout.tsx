@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | Haji Queens",
   },
   description:
-    "Haji Queens by Hazera Khawaja — seven years of modest and contemporary fashion. Abayas, maxis, indo-western fusion and corporate wear, curated with timeless elegance.",
+    "Haji Queens by Hazera Khawaja. Seven years of modest and contemporary fashion: abayas, maxis, Indo-Western sets and workwear.",
   keywords: [
     "modest fashion",
     "abayas",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
       "Thoughtfully curated fashion that celebrates individuality, confidence and timeless elegance.",
     url: SITE_URL,
     siteName: "Haji Queens",
-    images: [{ url: "/images/og-image.jpg", width: 1200, height: 630, alt: "Haji Queens" }],
+    images: [{ url: "/images/og-storefront.jpg", width: 1200, height: 630, alt: "Haji Queens" }],
     type: "website",
     locale: "en_IN",
   },
@@ -36,13 +36,13 @@ export const metadata: Metadata = {
     title: "Haji Queens — Modest & Contemporary Fashion",
     description:
       "Thoughtfully curated fashion that celebrates individuality, confidence and timeless elegance.",
-    images: ["/images/og-image.jpg"],
+    images: ["/images/og-storefront.jpg"],
   },
   robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf8f3",
+  themeColor: "#f8f4ed",
   width: "device-width",
   initialScale: 1,
 };
@@ -51,7 +51,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body
         className={`${cormorant.variable} ${manrope.variable} font-sans antialiased bg-background text-foreground flex min-h-screen flex-col`}
       >

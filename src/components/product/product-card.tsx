@@ -3,149 +3,148 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { WishlistButton } from "@/components/product/wishlist-button";
 import { formatINR } from "@/lib/money";
-import { useWishlist } from "@/store/wishlist-store";
+import {
+  colourFamilies,
+  colourPhotos,
+  displayBadge,
+  hasPrice,
+  isSoldOut,
+  photoPosition,
+  statusLabel,
+  swatchBackground,
+} from "@/lib/storefront";
 import { cn } from "@/lib/utils";
 import type { ProductDTO } from "@/lib/types";
+
+const MAX_SWATCHES = 5;
 
 export function ProductCard({
   product,
   priority = false,
+  feature = false,
+  families,
   className,
+  sizes = "(max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw",
 }: {
   product: ProductDTO;
   priority?: boolean;
+  /** Fills a larger grid cell. */
+  feature?: boolean;
+  /** Active colour filter: the card opens on a matching colour. */
+  families?: string[];
   className?: string;
+  sizes?: string;
 }) {
-  const [hover, setHover] = useState(false);
-  const toggle = useWishlist((s) => s.toggle);
-  const wishlisted = useWishlist((s) => s.items.some((i) => i.productId === product.id));
-
-  const firstColour = product.colors[0];
-  const gallery = firstColour?.images?.length ? firstColour.images : product.images;
-  const img = hover && gallery[1] ? gallery[1] : gallery[0];
-  const hasPhoto = Boolean(img);
-
-  const onWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const added = toggle({
-      productId: product.id,
-      slug: product.slug,
-      name: product.name,
-      image: product.images[0] ?? "",
-      price: product.price,
-    });
-    toast({
-      title: added ? "Added to wishlist" : "Removed from wishlist",
-      description: product.name,
-    });
-  };
+  const [picked, setPicked] = useState<string | null>(null);
+  const matched = families?.length
+    ? product.colors.find((c) => colourFamilies(c).some((f) => families.includes(f)))
+    : undefined;
+  const colour = product.colors.find((c) => c.name === picked) ?? matched ?? product.colors[0];
+  const photos = colourPhotos(product, colour);
+  const [main, alternate] = photos;
+  const linked = picked ?? matched?.name;
+  const href = `/product/${product.slug}${linked ? `?colour=${encodeURIComponent(linked)}` : ""}`;
+  const badge = isSoldOut(product) ? "Sold out" : displayBadge(product);
+  const swatches = product.colors.filter((c) => c.images?.length);
 
   return (
-    <article
-      className={cn("group relative", className)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <Link href={`/product/${product.slug}`} className="block" aria-label={product.name}>
-        <div className="img-zoom relative aspect-[3/4] w-full bg-cream">
-          {hasPhoto ? (
-            <Image
-              src={img}
-              alt={product.name}
-              fill
-              priority={priority}
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover"
-            />
+    <article className={cn("group relative flex flex-col", className)}>
+      <div className={cn("photo photo-hover", feature ? "aspect-[4/5] md:aspect-auto md:min-h-0 md:flex-1" : "aspect-[3/4]")}>
+        <Link href={href} className="absolute inset-0" tabIndex={-1} aria-hidden="true">
+          {main ? (
+            <>
+              <Image
+                key={main}
+                src={main}
+                alt=""
+                fill
+                sizes={sizes}
+                loading={priority ? "eager" : "lazy"}
+                fetchPriority={priority ? "high" : undefined}
+                quality={feature ? 85 : 75}
+                className={picked ? "fade-in" : undefined}
+                style={{ objectPosition: photoPosition(main) }}
+              />
+              {alternate && (
+                <Image
+                  src={alternate}
+                  alt=""
+                  fill
+                  sizes={sizes}
+                  className="hidden opacity-0 [@media(hover:hover)]:block [@media(hover:hover)]:group-hover:opacity-100"
+                  style={{ objectPosition: photoPosition(alternate) }}
+                />
+              )}
+            </>
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
-              <span className="h-px w-7 bg-gold" />
-              <p className="font-display text-[15px] text-espresso">Photographs coming soon</p>
-            </div>
+            <span className="absolute inset-0 flex items-end p-4 sm:p-6">
+              <span className="t-sub text-ink-soft">Photographs to follow</span>
+            </span>
           )}
+        </Link>
+        {badge && (
+          <span className="absolute left-0 top-3 bg-paper px-2.5 py-1 text-[0.8125rem] leading-tight">{badge}</span>
+        )}
+        <WishlistButton
+          product={product}
+          image={main}
+          className="absolute right-2.5 top-2.5 inline-flex size-9 items-center justify-center rounded-full bg-paper/70 text-ink transition-colors before:absolute before:-inset-1.5 hover:bg-paper"
+        />
+      </div>
 
-          {product.badge && (
-            <span className="absolute left-3 top-3 bg-ivory/95 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-espresso">
-              {product.badge}
-            </span>
-          )}
-          {!product.priceConfirmed && (
-            <span className="absolute bottom-3 left-3 bg-ivory/95 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-gold-deep">
-              {hasPhoto ? "Enquiry Only" : "Coming Soon"}
-            </span>
-          )}
-          {product.priceConfirmed && !product.purchasable && product.inStock && (
-            <span className="absolute bottom-3 left-3 bg-ivory/95 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-gold-deep">
-              Enquiry Only
-            </span>
-          )}
-          {product.priceConfirmed && !product.inStock && (
-            <span className="absolute left-3 top-3 bg-espresso/90 px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.18em] text-ivory">
-              Sold Out
-            </span>
-          )}
-        </div>
-
-        <div className="pt-4">
-          <p className="text-[10.5px] font-medium uppercase tracking-[0.2em] text-taupe">
-            {product.category.name}
-          </p>
-          <h3 className="mt-1 font-display text-[19px] leading-snug text-espresso transition-colors group-hover:text-gold">
-            {product.name}
+      <div className="pt-3.5">
+        <div className="flex flex-col gap-x-4 sm:flex-row sm:items-baseline sm:justify-between">
+          <h3 className={cn("font-medium leading-snug", feature ? "text-[1.125rem]" : "text-[0.9688rem] sm:text-[1rem]")}>
+            <Link href={href} className="hover:text-olive">
+              {product.name}
+            </Link>
           </h3>
-          <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
-            {product.priceConfirmed && product.price > 0 ? (
+          <p className="price shrink-0 text-[0.9688rem] sm:text-[1rem]">
+            {hasPrice(product) ? (
               <>
-                <p className="text-[14px] font-semibold text-espresso">{formatINR(product.price)}</p>
+                {formatINR(product.price)}
                 {product.compareAtPrice && product.compareAtPrice > product.price && (
-                  <p className="text-[12.5px] text-taupe line-through">
-                    {formatINR(product.compareAtPrice)}
-                  </p>
+                  <s className="ml-2 text-ink-soft">{formatINR(product.compareAtPrice)}</s>
                 )}
               </>
             ) : (
-              <p className="text-[13px] font-semibold text-gold-deep">Price Pending</p>
+              "Price on request"
+            )}
+          </p>
+        </div>
+        <p className="mt-0.5 text-sm text-ink-soft">{statusLabel(product)}</p>
+        {swatches.length > 1 && (
+          <div className="-ml-1 mt-1.5 flex flex-wrap items-center" role="group" aria-label={`Colours of ${product.name}`}>
+            {swatches.slice(0, MAX_SWATCHES).map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                onMouseEnter={() => setPicked(c.name)}
+                onClick={() => setPicked(c.name)}
+                aria-pressed={colour?.name === c.name}
+                aria-label={`Show ${c.name}`}
+                title={c.name}
+                className="inline-flex size-7 items-center justify-center sm:size-8"
+              >
+                <span
+                  className={cn(
+                    "size-[1.05rem] rounded-full ring-1 ring-offset-2 ring-offset-paper transition-shadow",
+                    colour?.name === c.name ? "ring-ink" : "ring-transparent"
+                  )}
+                  style={{ background: swatchBackground(c), boxShadow: colour?.name === c.name ? undefined : "0 0 0 1px rgb(42 32 26 / .14)" }}
+                />
+              </button>
+            ))}
+            {swatches.length > MAX_SWATCHES && (
+              <Link href={href} className="px-1 text-sm text-ink-soft" aria-label={`${swatches.length - MAX_SWATCHES} more colours`}>
+                +{swatches.length - MAX_SWATCHES}
+              </Link>
             )}
           </div>
-          {product.colors.length > 0 && (
-            <div className="mt-2.5 flex items-center gap-1.5" aria-label="Available colours">
-              {product.colors.slice(0, 4).map((c) => (
-                <span
-                  key={c.name}
-                  title={c.name}
-                  className="h-3 w-3 rounded-full border border-espresso/15"
-                  style={{
-                    background: c.hex2
-                      ? `linear-gradient(135deg, ${c.hex} 0 50%, ${c.hex2} 50% 100%)`
-                      : c.hex,
-                  }}
-                />
-              ))}
-              {product.colors.length > 4 && (
-                <span className="text-[10.5px] text-taupe">+{product.colors.length - 4}</span>
-              )}
-            </div>
-          )}
-        </div>
-      </Link>
-
-      {/* Wishlist */}
-      <button
-        onClick={onWishlist}
-        aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-        className={cn(
-          "absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-ivory/90 shadow-sm transition-all duration-300 hover:scale-110",
-          wishlisted ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100"
         )}
-      >
-        <Heart
-          className={cn("h-[15px] w-[15px]", wishlisted ? "fill-gold text-gold" : "text-espresso")}
-          strokeWidth={1.6}
-        />
-      </button>
+      </div>
     </article>
   );
 }

@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
-import { Logo } from "@/components/layout/logo";
+import { Heart, Menu, Search, ShoppingBag } from "lucide-react";
+import { Wordmark } from "@/components/storefront/wordmark";
+import { SearchOverlay } from "@/components/layout/search-overlay";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { useCart, cartCount } from "@/store/cart-store";
 import { useWishlist } from "@/store/wishlist-store";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { SearchOverlay } from "@/components/layout/search-overlay";
-import { MobileNav } from "@/components/layout/mobile-nav";
-import type { CategoryDTO } from "@/lib/types";
+import { categoryLabel } from "@/lib/storefront";
 import { cn } from "@/lib/utils";
-
-type NavLink = { label: string; href: string };
+import type { CategoryDTO } from "@/lib/types";
 
 export function Header({
   announcement,
@@ -26,117 +24,91 @@ export function Header({
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [megaOpen, setMegaOpen] = useState(false);
-  const megaTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const items = useCart((s) => s.items);
-  const openDrawer = useCart((s) => s.openDrawer);
-  const wishlistItems = useWishlist((s) => s.items);
-  const mounted = useHydrated();
+  const openBag = useCart((s) => s.openDrawer);
+  const closeBag = useCart((s) => s.closeDrawer);
+  const wishlist = useWishlist((s) => s.items);
+  const hydrated = useHydrated();
+  const bagCount = hydrated ? cartCount(items) : 0;
+  const wishCount = hydrated ? wishlist.length : 0;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const closeOverlays = useCallback(() => {
+  // Close anything open when the customer moves to another page.
+  useEffect(() => {
     setSearchOpen(false);
-    setMobileOpen(false);
-    setMegaOpen(false);
-  }, []);
+    setMenuOpen(false);
+    closeBag();
+  }, [pathname, closeBag]);
 
-  const openMega = useCallback(() => {
-    if (megaTimeout.current) clearTimeout(megaTimeout.current);
-    setMegaOpen(true);
-  }, []);
-  const closeMega = useCallback(() => {
-    megaTimeout.current = setTimeout(() => setMegaOpen(false), 120);
-  }, []);
-
-  const links: NavLink[] = [
-    { label: "Home", href: "/" },
-    { label: "Shop", href: "/shop" },
-    ...categories.map((c) => ({ label: c.name, href: `/category/${c.slug}` })),
-    { label: "Our Story", href: "/our-story" },
+  const links = [
+    { label: "New arrivals", href: "/new-arrivals" },
+    ...categories.map((c) => ({ label: categoryLabel(c), href: `/category/${c.slug}` })),
   ];
 
-  const bagCount = mounted ? cartCount(items) : 0;
-  const wishCount = mounted ? wishlistItems.length : 0;
+  const textLink = "relative py-2 text-[0.9375rem] transition-colors hover:text-olive";
+  const iconButton = "relative inline-flex h-11 w-10 items-center justify-center sm:w-11";
+  const count = (n: number) =>
+    n > 0 && (
+      <span className="price absolute right-0.5 top-1 flex h-[1.05rem] min-w-[1.05rem] items-center justify-center rounded-full bg-olive px-1 text-[0.6875rem] font-semibold leading-none text-paper">
+        {n}
+      </span>
+    );
 
   return (
     <>
-      <header className="sticky top-0 z-50">
-        {/* Announcement bar */}
-        {announcement?.enabled && announcement.text ? (
-          <div className="bg-espresso text-ivory">
-            <Link
-              href={announcement.href || "/shop"}
-              className="container-hq flex items-center justify-center py-2 text-center text-[10.5px] font-medium uppercase tracking-[0.24em] hover:text-champagne transition-colors"
-            >
-              {announcement.text}
-            </Link>
-          </div>
-        ) : null}
+      <a
+        href="#main"
+        className="sr-only z-[80] bg-ink px-5 py-3 text-paper focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Skip to content
+      </a>
 
-        {/* Main bar */}
-        <div
-          className={cn(
-            "border-b bg-ivory/95 backdrop-blur-md transition-shadow duration-300",
-            scrolled ? "border-border shadow-[0_1px_24px_rgba(48,40,32,0.06)]" : "border-transparent"
-          )}
-        >
-          <div className="container-hq flex h-[72px] items-center justify-between gap-4">
-            {/* Left: mobile menu + logo */}
-            <div className="flex items-center gap-3">
-              <button
-                className="-ml-2 inline-flex h-11 w-11 items-center justify-center text-espresso lg:hidden"
-                onClick={() => setMobileOpen(true)}
-                aria-label="Open menu"
-              >
-                <Menu className="h-5 w-5" strokeWidth={1.5} />
-              </button>
-              <Link href="/" aria-label="Haji Queens — home">
-                <Logo compact />
-              </Link>
-            </div>
+      {announcement?.enabled && announcement.text && (
+        <div className="bg-ink text-paper">
+          <Link
+            href={announcement.href || "/shop"}
+            className="wrap flex min-h-10 items-center justify-center py-2 text-center text-[0.875rem] leading-snug transition-colors hover:text-sand"
+          >
+            {announcement.text.replace(/\s*\|\s*/g, ". ")}
+          </Link>
+        </div>
+      )}
 
-            {/* Center: desktop nav */}
-            <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary">
+      <header
+        className={cn(
+          "sticky top-0 z-40 border-b bg-paper transition-colors duration-300",
+          scrolled ? "border-sand" : "border-transparent"
+        )}
+      >
+        <div className="wrap grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-4 xl:h-[4.75rem]">
+          {/* Left */}
+          <div className="flex items-center">
+            <button type="button" className={cn(iconButton, "-ml-3 xl:hidden")} onClick={() => setMenuOpen(true)} aria-label="Open menu">
+              <Menu className="size-[1.35rem]" strokeWidth={1.4} />
+            </button>
+            <button type="button" className={cn(iconButton, "xl:hidden")} onClick={() => setSearchOpen(true)} aria-label="Search">
+              <Search className="size-[1.2rem]" strokeWidth={1.4} />
+            </button>
+            <nav className="hidden items-center gap-7 xl:flex" aria-label="Collections">
               {links.map((l) => {
-                const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-                if (l.label === "Shop") {
-                  return (
-                    <div
-                      key={l.href}
-                      className="relative"
-                      onMouseEnter={openMega}
-                      onMouseLeave={closeMega}
-                    >
-                      <Link
-                        href="/shop"
-                        onClick={closeOverlays}
-                        data-active={active || megaOpen}
-                        className={cn(
-                          "link-underline whitespace-nowrap py-6 text-[12.5px] font-medium uppercase tracking-[0.16em] transition-colors",
-                          active || megaOpen ? "text-gold" : "text-espresso hover:text-gold"
-                        )}
-                      >
-                        Shop
-                      </Link>
-                    </div>
-                  );
-                }
+                const active = pathname === l.href;
                 return (
                   <Link
                     key={l.href}
                     href={l.href}
-                    onClick={closeOverlays}
-                    data-active={active}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                      "link-underline whitespace-nowrap py-6 text-[12.5px] font-medium uppercase tracking-[0.16em] transition-colors",
-                      active ? "text-gold" : "text-espresso hover:text-gold"
+                      textLink,
+                      "whitespace-nowrap after:absolute after:inset-x-0 after:bottom-1 after:h-px after:origin-left after:bg-current after:transition-transform after:duration-300",
+                      active ? "after:scale-x-100" : "after:scale-x-0 hover:after:scale-x-100"
                     )}
                   >
                     {l.label}
@@ -144,121 +116,52 @@ export function Header({
                 );
               })}
             </nav>
+          </div>
 
-            {/* Right: icons */}
-            <div className="flex items-center gap-0.5 sm:gap-1">
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="inline-flex h-11 w-11 items-center justify-center text-espresso transition-colors hover:text-gold"
-                aria-label="Search"
-              >
-                <Search className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          {/* Centre */}
+          <Link href="/" aria-label="Haji Queens, home" className="py-2">
+            <Wordmark />
+          </Link>
+
+          {/* Right */}
+          <div className="flex items-center justify-end">
+            <div className="hidden items-center gap-7 xl:flex">
+              <button type="button" className={textLink} onClick={() => setSearchOpen(true)}>
+                Search
               </button>
-              <Link
-                href="/account"
-                className="hidden sm:inline-flex h-11 w-11 items-center justify-center text-espresso transition-colors hover:text-gold"
-                aria-label="Account"
-              >
-                <User className="h-[18px] w-[18px]" strokeWidth={1.5} />
+              <Link href="/account" className={textLink}>
+                Orders
               </Link>
-              <Link
-                href="/wishlist"
-                className="relative inline-flex h-11 w-11 items-center justify-center text-espresso transition-colors hover:text-gold"
-                aria-label={`Wishlist${wishCount ? `, ${wishCount} items` : ""}`}
-              >
-                <Heart className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                {wishCount > 0 && (
-                  <span className="absolute right-1 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[9px] font-bold text-white">
-                    {wishCount}
-                  </span>
-                )}
+              <Link href="/wishlist" className={textLink}>
+                Wishlist{wishCount > 0 && <span className="price"> ({wishCount})</span>}
               </Link>
-              <button
-                onClick={openDrawer}
-                className="relative inline-flex h-11 w-11 items-center justify-center text-espresso transition-colors hover:text-gold"
-                aria-label={`Shopping bag${bagCount ? `, ${bagCount} items` : ""}`}
-              >
-                <ShoppingBag className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                {bagCount > 0 && (
-                  <span className="absolute right-1 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-espresso px-1 text-[9px] font-bold text-ivory">
-                    {bagCount}
-                  </span>
-                )}
+              <button type="button" className={textLink} onClick={openBag}>
+                Bag<span className="price"> ({bagCount})</span>
               </button>
             </div>
+            <Link
+              href="/wishlist"
+              className={cn(iconButton, "xl:hidden")}
+              aria-label={`Wishlist${wishCount ? `, ${wishCount} saved` : ""}`}
+            >
+              <Heart className="size-[1.2rem]" strokeWidth={1.4} />
+              {count(wishCount)}
+            </Link>
+            <button
+              type="button"
+              className={cn(iconButton, "-mr-3 xl:hidden")}
+              onClick={openBag}
+              aria-label={`Shopping bag${bagCount ? `, ${bagCount} items` : ", empty"}`}
+            >
+              <ShoppingBag className="size-[1.2rem]" strokeWidth={1.4} />
+              {count(bagCount)}
+            </button>
           </div>
         </div>
-
-        {/* Mega menu (Shop) */}
-        <AnimatePresence>
-          {megaOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="absolute inset-x-0 top-full hidden border-b border-border bg-ivory shadow-[0_24px_48px_rgba(48,40,32,0.08)] lg:block"
-              onMouseEnter={openMega}
-              onMouseLeave={closeMega}
-            >
-              <div className="container-hq grid grid-cols-[1fr_1fr_1fr_1fr_1.15fr] gap-8 py-10">
-                <div className="col-span-1 flex flex-col justify-center">
-                  <p className="kicker">The Edit</p>
-                  <p className="mt-4 font-display text-2xl leading-snug text-espresso">
-                    Browse the full
-                    <br />
-                    collection
-                  </p>
-                  <Link
-                    href="/shop"
-                    className="link-underline mt-5 inline-block w-fit text-[12px] font-semibold uppercase tracking-[0.2em] text-gold"
-                  >
-                    View everything
-                  </Link>
-                </div>
-                {categories.map((c) => (
-                  <Link
-                    key={c.slug}
-                    href={`/category/${c.slug}`}
-                    className="group block"
-                  >
-                    <div className="img-zoom aspect-[4/5] w-full bg-cream">
-                      {c.tileImage && (
-                         
-                        <img
-                          src={c.tileImage}
-                          alt={c.name}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      )}
-                    </div>
-                    <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.14em] text-espresso group-hover:text-gold transition-colors">
-                      {c.name}
-                    </p>
-                    {c.tagline && (
-                      <p className="mt-0.5 text-[12px] italic text-taupe font-display text-sm">
-                        {c.tagline}
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
 
-      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <MobileNav
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        categories={categories}
-      />
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} links={links} />
+      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} categories={categories} />
     </>
   );
-}
-
-export function HeaderIconX({ className }: { className?: string }) {
-  return <X className={className} />;
 }

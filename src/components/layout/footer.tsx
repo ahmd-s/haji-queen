@@ -1,179 +1,105 @@
 import Link from "next/link";
-import { Logo } from "@/components/layout/logo";
-import { Instagram, Facebook, MessageCircle, Mail, MapPin, Clock } from "lucide-react";
-import type { CategoryDTO } from "@/lib/types";
-import { isWhatsAppConfigured, waGeneralLink } from "@/lib/whatsapp";
+import { Wordmark } from "@/components/storefront/wordmark";
 import { getContent } from "@/lib/data";
-
-type ContactContent = { email?: string; phoneDisplay?: string; address?: string; hours?: string };
+import { categoryLabel, publicContact, type ContactContent } from "@/lib/storefront";
+import { isWhatsAppConfigured, waGeneralLink } from "@/lib/whatsapp";
+import type { CategoryDTO } from "@/lib/types";
 
 export async function Footer({ categories }: { categories: CategoryDTO[] }) {
-  const social = await getContent<{ instagram?: string; facebook?: string }>("social", {});
-  const contact = await getContent<ContactContent>("contact", {});
+  const [social, rawContact] = await Promise.all([
+    getContent<{ instagram?: string; facebook?: string }>("social", {}),
+    getContent<ContactContent>("contact", {}),
+  ]);
+  const contact = publicContact(rawContact);
+
+  const columns: { title: string; links: { label: string; href: string; external?: boolean }[] }[] = [
+    {
+      title: "Shop",
+      links: [
+        { label: "New arrivals", href: "/new-arrivals" },
+        ...categories.map((c) => ({ label: categoryLabel(c), href: `/category/${c.slug}` })),
+        { label: "Shop everything", href: "/shop" },
+      ],
+    },
+    {
+      title: "Help",
+      links: [
+        { label: "Track an order", href: "/account" },
+        { label: "Shipping", href: "/shipping-policy" },
+        { label: "Returns and exchanges", href: "/returns-policy" },
+        { label: "Made to your measure", href: "/custom-measurements" },
+        { label: "Contact us", href: "/contact" },
+      ],
+    },
+    {
+      title: "Haji Queens",
+      links: [
+        { label: "Our story", href: "/our-story" },
+        ...(social.instagram ? [{ label: "Instagram", href: social.instagram, external: true }] : []),
+        ...(social.facebook ? [{ label: "Facebook", href: social.facebook, external: true }] : []),
+        ...(isWhatsAppConfigured() ? [{ label: "WhatsApp", href: waGeneralLink(), external: true }] : []),
+      ],
+    },
+  ];
 
   return (
-    <footer className="mt-auto bg-espresso text-ivory">
-      <div className="container-hq grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1.2fr]">
-        {/* Brand */}
-        <div>
-          <Logo dark />
-          <p className="mt-6 max-w-sm text-[13.5px] leading-relaxed text-champagne/85">
-            Seven years of thoughtfully curated modest and contemporary fashion — designed for
-            women who dress with intention, for every occasion and every day.
-          </p>
-          <div className="mt-6 flex items-center gap-4">
-            <a
-              href={social.instagram || "https://instagram.com"}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-              className="inline-flex h-10 w-10 items-center justify-center border border-ivory/20 transition-colors hover:border-gold hover:text-gold"
-            >
-              <Instagram className="h-[17px] w-[17px]" strokeWidth={1.5} />
-            </a>
-            <a
-              href={social.facebook || "https://facebook.com"}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook"
-              className="inline-flex h-10 w-10 items-center justify-center border border-ivory/20 transition-colors hover:border-gold hover:text-gold"
-            >
-              <Facebook className="h-[17px] w-[17px]" strokeWidth={1.5} />
-            </a>
-            {isWhatsAppConfigured() && (
-              <a
-                href={waGeneralLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="WhatsApp"
-                className="inline-flex h-10 w-10 items-center justify-center border border-ivory/20 transition-colors hover:border-gold hover:text-gold"
-              >
-                <MessageCircle className="h-[17px] w-[17px]" strokeWidth={1.5} />
-              </a>
-            )}
-          </div>
-        </div>
-
-        {/* Shop */}
-        <nav aria-label="Shop">
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.28em] text-champagne/70">
-            Shop
-          </h3>
-          <ul className="mt-5 space-y-3 text-[13.5px] text-ivory/90">
-            <li>
-              <Link href="/shop" className="transition-colors hover:text-gold">
-                All Collections
-              </Link>
-            </li>
-            {categories.map((c) => (
-              <li key={c.slug}>
-                <Link href={`/category/${c.slug}`} className="transition-colors hover:text-gold">
-                  {c.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Company */}
-        <nav aria-label="Company">
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.28em] text-champagne/70">
-            Company
-          </h3>
-          <ul className="mt-5 space-y-3 text-[13.5px] text-ivory/90">
-            <li>
-              <Link href="/our-story" className="transition-colors hover:text-gold">
-                Our Story
-              </Link>
-            </li>
-            <li>
-              <Link href="/custom-measurements" className="transition-colors hover:text-gold">
-                Custom Measurements
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="transition-colors hover:text-gold">
-                Contact Us
-              </Link>
-            </li>
-            <li>
-              <Link href="/account" className="transition-colors hover:text-gold">
-                Track Your Order
-              </Link>
-            </li>
-          </ul>
-        </nav>
-
-        {/* Contact & policies */}
-        <div>
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.28em] text-champagne/70">
-            Client Care
-          </h3>
-          <ul className="mt-5 space-y-3 text-[13.5px] text-ivory/90">
-            {contact.email && (
-              <li className="flex items-center gap-2.5">
-                <Mail className="h-4 w-4 text-gold" strokeWidth={1.5} />
-                <a href={`mailto:${contact.email}`} className="transition-colors hover:text-gold">
+    <footer className="mt-auto bg-ink text-paper">
+      <div className="wrap grid gap-12 pb-14 pt-16 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:pt-20">
+        <div className="sm:col-span-2 lg:col-span-1">
+          <p className="t-sub max-w-[24ch]">Modest and contemporary fashion, seven years in the making.</p>
+          {(contact.email || contact.phoneDisplay || contact.address || contact.hours) && (
+            <address className="mt-6 space-y-1 not-italic text-[0.9375rem] text-sand">
+              {contact.email && (
+                <a href={`mailto:${contact.email}`} className="link inline-block py-1 text-paper decoration-paper/40">
                   {contact.email}
                 </a>
-              </li>
-            )}
-            {isWhatsAppConfigured() && (
-              <li className="flex items-center gap-2.5">
-                <MessageCircle className="h-4 w-4 text-gold" strokeWidth={1.5} />
-                <a
-                  href={waGeneralLink()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-colors hover:text-gold"
-                >
-                  WhatsApp Us
-                </a>
-              </li>
-            )}
-            {contact.address && (
-              <li className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" strokeWidth={1.5} />
-                <span className="text-ivory/80">{contact.address}</span>
-              </li>
-            )}
-            {contact.hours && (
-              <li className="flex items-start gap-2.5">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-gold" strokeWidth={1.5} />
-                <span className="text-ivory/80">{contact.hours}</span>
-              </li>
-            )}
-          </ul>
-          <ul className="mt-6 space-y-2 border-t border-ivory/10 pt-5 text-[12px] text-ivory/70">
-            <li>
-              <Link href="/shipping-policy" className="transition-colors hover:text-gold">
-                Shipping Policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/returns-policy" className="transition-colors hover:text-gold">
-                Returns &amp; Exchange Policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/privacy-policy" className="transition-colors hover:text-gold">
-                Privacy Policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms" className="transition-colors hover:text-gold">
-                Terms &amp; Conditions
-              </Link>
-            </li>
-          </ul>
+              )}
+              {contact.phoneDisplay && (
+                <p>
+                  <a href={`tel:${contact.phoneDisplay.replace(/[^\d+]/g, "")}`}>{contact.phoneDisplay}</a>
+                </p>
+              )}
+              {contact.hours && <p>{contact.hours}</p>}
+              {contact.address && <p>{contact.address}</p>}
+            </address>
+          )}
         </div>
+        {columns.map((col) => (
+          <nav key={col.title} aria-label={col.title}>
+            <h2 className="text-[0.9375rem] font-medium text-sand">{col.title}</h2>
+            <ul className="mt-3">
+              {col.links.map((l) => (
+                <li key={l.href}>
+                  {l.external ? (
+                    <a href={l.href} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 transition-colors hover:text-sand">
+                      {l.label}
+                    </a>
+                  ) : (
+                    <Link href={l.href} className="inline-block py-1.5 transition-colors hover:text-sand">
+                      {l.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
       </div>
 
-      <div className="border-t border-ivory/10">
-        <div className="container-hq flex flex-col items-center justify-between gap-2 py-5 text-[11px] tracking-wide text-ivory/55 sm:flex-row">
-          <p>© {new Date().getFullYear()} Haji Queens · By Hazera Khawaja. All rights reserved.</p>
-          <p>Crafted with intention · hajiqueens.com</p>
-        </div>
+      <div className="wrap" aria-hidden="true">
+        <Wordmark size="lg" className="!flex w-full overflow-hidden border-t border-paper/15 pb-6 pt-10" />
+      </div>
+
+      <div className="wrap flex flex-col gap-3 pb-8 pt-2 text-sm text-sand sm:flex-row sm:items-center sm:justify-between">
+        <p>© {new Date().getFullYear()} Haji Queens by Hazera Khawaja</p>
+        <p className="flex gap-6">
+          <Link href="/privacy-policy" className="py-1 hover:text-paper">
+            Privacy
+          </Link>
+          <Link href="/terms" className="py-1 hover:text-paper">
+            Terms
+          </Link>
+        </p>
       </div>
     </footer>
   );

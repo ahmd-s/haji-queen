@@ -2,164 +2,141 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { X } from "lucide-react";
+import { Sheet } from "@/components/storefront/sheet";
 import { formatINR } from "@/lib/money";
+import { hasPrice, merchandise, photoPosition } from "@/lib/storefront";
 import type { ProductDTO } from "@/lib/types";
 
-export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ProductDTO[]>([]);
-  const [loading, setLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+export function SearchOverlay({
+  open,
+  onClose,
+  links,
+}: {
+  open: boolean;
+  onClose: () => void;
+  links: { label: string; href: string }[];
+}) {
   const router = useRouter();
+  const input = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ProductDTO[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const q = query.trim();
 
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 60);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+    if (open) input.current?.focus();
+    else {
       setQuery("");
-      setResults([]);
+      setResults(null);
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [open]);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
+    setFailed(false);
+    if (q.length < 2) {
+      setResults(null);
       return;
     }
-    setLoading(true);
+    const abort = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/products?search=${encodeURIComponent(query)}&limit=6`);
+        const res = await fetch(`/api/products?search=${encodeURIComponent(q)}&limit=24`, { signal: abort.signal });
+        if (!res.ok) throw new Error("search failed");
         const data = await res.json();
-        setResults(data.products ?? []);
+        setResults(merchandise(data.products ?? []));
       } catch {
-        setResults([]);
-      } finally {
-        setLoading(false);
+        if (!abort.signal.aborted) setFailed(true);
       }
-    }, 280);
-    return () => clearTimeout(t);
-  }, [query]);
+    }, 240);
+    return () => {
+      clearTimeout(t);
+      abort.abort();
+    };
+  }, [q]);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[70] bg-ivory/98 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Search products"
+    <Sheet open={open} onClose={onClose} side="top" label="Search the collection">
+      <div className="wrap pb-10 pt-4 md:pb-14">
+        <form
+          role="search"
+          className="flex items-center gap-4 border-b border-ink"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!q) return;
+            onClose();
+            router.push(`/shop?search=${encodeURIComponent(q)}`);
+          }}
         >
-          <div className="container-hq flex h-full flex-col">
-            <div className="flex items-center justify-between py-5">
-              <span className="kicker">Search</span>
-              <button
+          <input
+            ref={input}
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="What are you looking for?"
+            aria-label="Search the collection"
+            autoComplete="off"
+            enterKeyHint="search"
+            className="t-head min-w-0 flex-1 bg-transparent py-4 !tracking-[-0.015em] placeholder:text-ink-soft/70 focus:outline-none focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+          />
+          <button type="button" onClick={onClose} aria-label="Close search" className="inline-flex size-11 shrink-0 items-center justify-center">
+            <X className="size-5" strokeWidth={1.4} />
+          </button>
+        </form>
+
+        <div className="mt-7" aria-live="polite">
+          {q.length < 2 ? (
+            <div className="flex flex-wrap gap-x-7 gap-y-3 text-[1.0313rem]">
+              {[...links, { label: "Shop everything", href: "/shop" }].map((l) => (
+                <Link key={l.href} href={l.href} onClick={onClose} className="link py-1">
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          ) : failed ? (
+            <p className="text-ink-soft">Search is not responding. Check your connection and try again.</p>
+          ) : results === null ? (
+            <p className="text-ink-soft">Searching for “{q}”</p>
+          ) : results.length === 0 ? (
+            <p className="text-ink-soft">
+              Nothing found for “{q}”. Try a garment, such as abaya or skirt, or{" "}
+              <Link href="/shop" onClick={onClose} className="link text-ink">
+                see everything
+              </Link>
+              .
+            </p>
+          ) : (
+            <>
+              <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:gap-x-5 lg:grid-cols-6">
+                {results.slice(0, 6).map((p) => (
+                  <li key={p.id}>
+                    <Link href={`/product/${p.slug}`} onClick={onClose} className="group block">
+                      <span className="photo photo-hover block aspect-[3/4]">
+                        {p.images[0] && (
+                          <Image src={p.images[0]} alt="" fill sizes="(max-width: 640px) 45vw, 15vw" style={{ objectPosition: photoPosition(p.images[0]) }} />
+                        )}
+                      </span>
+                      <span className="mt-2.5 block font-medium leading-snug">{p.name}</span>
+                      <span className="price mt-0.5 block text-[0.9375rem] text-ink-soft">
+                        {hasPrice(p) ? formatINR(p.price) : "Price on request"}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={`/shop?search=${encodeURIComponent(q)}`}
                 onClick={onClose}
-                className="inline-flex h-11 w-11 items-center justify-center text-espresso hover:text-gold"
-                aria-label="Close search"
+                className="link mt-8 inline-block py-1 font-medium"
               >
-                <X className="h-5 w-5" strokeWidth={1.5} />
-              </button>
-            </div>
-            <div className="mx-auto w-full max-w-2xl">
-              <div className="flex items-center gap-4 border-b border-espresso/25 pb-4">
-                <Search className="h-5 w-5 text-taupe" strokeWidth={1.5} />
-                <input
-                  ref={inputRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && query.trim()) {
-                      onClose();
-                      router.push(`/shop?search=${encodeURIComponent(query.trim())}`);
-                    }
-                    if (e.key === "Escape") onClose();
-                  }}
-                  placeholder="Search abayas, maxis, co-ords…"
-                  className="w-full bg-transparent font-display text-2xl text-espresso placeholder:text-taupe/60 focus:outline-none md:text-3xl"
-                  autoComplete="off"
-                />
-              </div>
-
-              {!query && (
-                <div className="mt-8">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-taupe">
-                    Popular searches
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {["Abaya", "Floral Maxi", "Kurta set", "Workwear", "Evening"].map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setQuery(s)}
-                        className="border border-border px-4 py-2 text-[12px] tracking-wide text-espresso transition-colors hover:border-gold hover:text-gold"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {query && (
-                <div className="mt-8 max-h-[52vh] overflow-y-auto">
-                  {loading && results.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-taupe">Searching…</p>
-                  ) : results.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-taupe">
-                      Nothing found for “{query}”. Try “abaya” or “maxi”.
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-border">
-                      {results.map((p) => (
-                        <li key={p.id}>
-                          <Link
-                            href={`/product/${p.slug}`}
-                            onClick={onClose}
-                            className="group flex items-center gap-4 py-3"
-                          >
-                            <div className="h-20 w-16 shrink-0 overflow-hidden bg-cream">
-                              {p.images[0] && (
-                                <img
-                                  src={p.images[0]}
-                                  alt={p.name}
-                                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-[12px] uppercase tracking-[0.14em] text-taupe">
-                                {p.category.name}
-                              </p>
-                              <p className="mt-0.5 font-display text-lg text-espresso group-hover:text-gold">
-                                {p.name}
-                              </p>
-                            </div>
-                            <p className="text-sm font-semibold text-espresso">
-                              {formatINR(p.price)}
-                            </p>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                {results.length > 6 ? `See all ${results.length} results` : "Open these results in the shop"}
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </Sheet>
   );
 }

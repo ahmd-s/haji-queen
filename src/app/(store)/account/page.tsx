@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { PackageSearch, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { formatINR } from "@/lib/money";
 
 type LookupResult = {
   orderNumber: string;
@@ -12,6 +13,13 @@ type LookupResult = {
   createdAt: string;
   estimatedNote: string;
 };
+
+const PAYMENT: Record<string, string> = {
+  COD: "Cash on delivery",
+  BANK_TRANSFER: "Bank transfer",
+  RAZORPAY: "Online",
+};
+const words = (s: string) => s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, " ");
 
 export default function AccountPage() {
   const [orderNumber, setOrderNumber] = useState("");
@@ -32,96 +40,87 @@ export default function AccountPage() {
         body: JSON.stringify({ orderNumber, contact }),
       });
       const data = await res.json();
-      if (!res.ok) setError(data.error ?? "Could not find that order.");
+      if (!res.ok) setError(data.error ?? "We could not find that order.");
       else setResult(data.order);
     } catch {
-      setError("Network error. Please try again.");
+      setError("Check your connection and try again.");
     }
     setLoading(false);
   };
 
   return (
-    <div className="container-hq-narrow py-14 lg:py-20">
-      <p className="kicker">Client Care</p>
-      <h1 className="display-1 mt-4 text-espresso">Track Your Order</h1>
-      <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-espresso/70">
-        Enter the order number from your confirmation along with the email or phone number used
-        at checkout.
+    <div className="wrap-text min-h-[64vh] pb-[var(--section)] pt-10 md:pt-16">
+      <h1 className="t-title">Track an order</h1>
+      <p className="t-body mt-4">
+        Enter the order number from your confirmation, with the email or phone number you used at checkout. You do not
+        need an account.
       </p>
 
-      <form onSubmit={submit} className="mt-8 grid max-w-xl gap-4 sm:grid-cols-2">
+      <form onSubmit={submit} className="mt-9 grid max-w-2xl gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="orderNumber" className="field-label">Order number</label>
+          <label htmlFor="orderNumber" className="label">
+            Order number
+          </label>
           <input
             id="orderNumber"
-            className="field-hq"
+            className="field"
             value={orderNumber}
             onChange={(e) => setOrderNumber(e.target.value)}
             placeholder="HQ-123456"
+            autoCapitalize="characters"
             required
           />
         </div>
         <div>
-          <label htmlFor="contact" className="field-label">Email or phone</label>
-          <input
-            id="contact"
-            className="field-hq"
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
-            placeholder="you@example.com"
-            required
-          />
+          <label htmlFor="contact" className="label">
+            Email or phone
+          </label>
+          <input id="contact" className="field" value={contact} onChange={(e) => setContact(e.target.value)} required />
         </div>
         <div className="sm:col-span-2">
-          <button type="submit" disabled={loading} className="btn-hq-primary w-full sm:w-auto">
-            {loading ? "Looking up…" : "Track Order"}
+          <button type="submit" disabled={loading} className="btn btn-solid w-full sm:w-auto">
+            {loading ? "Looking up your order" : "Track order"}
           </button>
         </div>
       </form>
 
-      {error && (
-        <p className="mt-6 max-w-xl border border-destructive/30 bg-destructive/5 p-3 text-[13px] text-destructive">
-          {error}
-        </p>
-      )}
+      <div aria-live="polite">
+        {error && (
+          <div className="mt-8 max-w-2xl border-l-2 border-clay bg-shell p-5">
+            <p>{error}</p>
+            <p className="mt-1 text-ink-soft">
+              Still stuck?{" "}
+              <Link href="/contact" className="link text-ink">
+                Contact us
+              </Link>{" "}
+              and we will look it up for you.
+            </p>
+          </div>
+        )}
 
-      {result && (
-        <div className="mt-8 max-w-xl border border-gold/40 bg-champagne/25 p-6">
-          <p className="font-display text-2xl text-espresso">{result.orderNumber}</p>
-          <dl className="mt-4 grid grid-cols-2 gap-3 text-[13.5px]">
-            <div>
-              <dt className="text-[11px] uppercase tracking-[0.16em] text-taupe">Status</dt>
-              <dd className="mt-0.5 font-semibold text-espresso">{result.status}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-[0.16em] text-taupe">Payment</dt>
-              <dd className="mt-0.5 font-semibold text-espresso">
-                {result.paymentMethod} · {result.paymentStatus}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-[0.16em] text-taupe">Total</dt>
-              <dd className="mt-0.5 font-semibold text-espresso">₹{result.total.toLocaleString("en-IN")}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-[0.16em] text-taupe">Placed</dt>
-              <dd className="mt-0.5 font-semibold text-espresso">
-                {new Date(result.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-              </dd>
-            </div>
-          </dl>
-          <p className="mt-4 flex items-start gap-2 text-[13px] text-espresso/70">
-            <PackageSearch className="mt-0.5 h-4 w-4 shrink-0 text-gold" strokeWidth={1.5} />
-            {result.estimatedNote}
-          </p>
-        </div>
-      )}
-
-      <p className="mt-12 flex max-w-xl items-start gap-2 text-[12.5px] leading-relaxed text-taupe">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.5} />
-        Customer accounts are coming soon. Until then, order tracking and personal assistance are
-        handled directly by our team — the way we have always done it.
-      </p>
+        {result && (
+          <section className="fade-in mt-10 max-w-2xl bg-shell p-6 sm:p-9" aria-label={`Order ${result.orderNumber}`}>
+            <h2 className="t-head">{words(result.status)}</h2>
+            <p className="mt-2 text-ink-soft">{result.estimatedNote}</p>
+            <dl className="mt-7 grid gap-x-8 gap-y-5 border-t border-sand pt-6 sm:grid-cols-2">
+              {[
+                ["Order", result.orderNumber],
+                [
+                  "Placed",
+                  new Date(result.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }),
+                ],
+                ["Total", formatINR(result.total)],
+                ["Payment", `${PAYMENT[result.paymentMethod] ?? result.paymentMethod}, ${words(result.paymentStatus).toLowerCase()}`],
+              ].map(([k, v]) => (
+                <div key={k}>
+                  <dt className="text-[0.9375rem] text-ink-soft">{k}</dt>
+                  <dd className="price mt-0.5 font-medium">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
