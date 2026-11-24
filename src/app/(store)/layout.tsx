@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { WhatsAppFloat } from "@/components/layout/whatsapp-float";
 import { CookieConsent } from "@/components/layout/cookie-consent";
+import { Intro } from "@/components/storefront/intro";
 import { NavProgress } from "@/components/storefront/nav-progress";
 import { NoticeRegion } from "@/components/storefront/notice";
 import { MetaPixelListener } from "@/lib/pixel";
@@ -18,6 +19,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   return (
     <div className={`hq ${newsreader.variable} ${hanken.variable} ${wordmark.variable}`}>
+      <Intro />
       <NavProgress />
       <Header announcement={announcement} categories={categories} />
       <main id="main" className="flex-1">
