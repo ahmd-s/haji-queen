@@ -2,6 +2,8 @@
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 export const SITE_NAME = "Haji Queens";
 export const SITE_TAGLINE = "By Hazera Khawaja";
+/** Owner-supplied emblem, prepared for dark and light surfaces (transparent WebP). */
+export const BRAND_LOGO = "/brand/haji-queens-logo.webp";
 
 export const SHIPPING_FEE = Number(process.env.NEXT_PUBLIC_SHIPPING_FEE || 99);
 export const FREE_SHIPPING_THRESHOLD = Number(

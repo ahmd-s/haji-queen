@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/storefront/wordmark";
 import { getContent } from "@/lib/data";
+import { BRAND_LOGO } from "@/lib/site";
 import { categoryLabel, publicContact, type ContactContent } from "@/lib/storefront";
 import { isWhatsAppConfigured, waGeneralLink } from "@/lib/whatsapp";
 import type { CategoryDTO } from "@/lib/types";
@@ -46,6 +47,15 @@ export async function Footer({ categories }: { categories: CategoryDTO[] }) {
     <footer className="mt-auto bg-ink text-paper">
       <div className="wrap grid gap-12 pb-14 pt-16 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:pt-20">
         <div className="sm:col-span-2 lg:col-span-1">
+          {/* A quiet nod to the supplied emblem; the large lettering below stays the navigation lockup. */}
+          <img
+            src={BRAND_LOGO}
+            alt=""
+            width={512}
+            height={491}
+            loading="lazy"
+            className="mb-5 h-11 w-auto opacity-80"
+          />
           <p className="t-sub max-w-[24ch]">Modest and contemporary fashion, seven years in the making.</p>
           {(contact.email || contact.phoneDisplay || contact.address || contact.hours) && (
             <address className="mt-6 space-y-1 not-italic text-[0.9375rem] text-sand">

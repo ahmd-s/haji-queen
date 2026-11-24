@@ -538,67 +538,22 @@ html[data-intro="out"] .hq .intro-lockup {
     transform: translateY(-18px);
   }
 }
-.hq .intro-star {
-  width: clamp(5.5rem, 11vw, 8rem);
+/* The supplied emblem settles onto the dark cloth with a soft gold glow. */
+.hq .intro-logo {
+  width: clamp(8.5rem, 19vw, 13rem);
   height: auto;
-  overflow: visible;
-  stroke: #c9a871;
-  stroke-width: 1.1;
+  filter: drop-shadow(0 2px 18px rgb(0 0 0 / 0.45));
+  animation: intro-logo-in 1.05s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s both;
 }
-.hq .intro-star rect,
-.hq .intro-star path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: intro-draw 0.85s cubic-bezier(0.6, 0, 0.2, 1) 0.1s both;
-}
-.hq .intro-star .intro-turn {
-  transform-origin: 60px 60px;
-  animation:
-    intro-draw 0.85s cubic-bezier(0.6, 0, 0.2, 1) 0.1s both,
-    intro-turn 0.9s cubic-bezier(0.5, 0, 0.1, 1) 0.6s both;
-}
-.hq .intro-star .intro-h {
-  stroke: var(--color-paper);
-  stroke-width: 1.6;
-  animation: intro-draw 0.7s ease-out 0.95s both;
-}
-@keyframes intro-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-@keyframes intro-turn {
-  to {
-    transform: rotate(45deg);
-  }
-}
-.hq .intro-word {
-  display: flex;
-  margin-top: 1.7rem;
-  font-family: var(--font-wordmark), Georgia, serif;
-  font-size: clamp(1.7rem, 5vw, 3.5rem);
-  font-weight: 500;
-  line-height: 1.15;
-}
-.hq .intro-word span {
-  overflow: hidden;
-  padding-inline: 0.08em;
-}
-.hq .intro-word i {
-  display: block;
-  font-style: normal;
-  animation: intro-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-@keyframes intro-rise {
+@keyframes intro-logo-in {
   from {
-    transform: translateY(112%);
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
   }
-}
-.hq .intro-by {
-  margin-top: 0.7rem;
-  font-size: 0.9375rem;
-  color: var(--color-sand);
-  animation: hq-fade 0.6s ease 1.45s both;
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 /* The campaign photographs settle into place as the cloth lifts. */
 html[data-intro="on"] .hq .hero-in {

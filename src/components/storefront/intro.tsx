@@ -7,8 +7,10 @@
  * The page underneath renders normally throughout. On a slow connection the cloth
  * waits briefly (3.6s at most) for the campaign photographs. The
  * controller is a small inline script that runs before first paint: without
- * JavaScript the intro simply does not appear.
+ * JavaScript the intro simply does not appear. The centre lockup is the owner's
+ * supplied emblem, lifted gently onto the dark cloth.
  */
+import { BRAND_LOGO } from "@/lib/site";
 const CONTROLLER = `(function(){try{
 var r=document.documentElement,k="hq-intro";
 if(location.pathname!=="/"||matchMedia("(prefers-reduced-motion: reduce)").matches||sessionStorage.getItem(k))return;
@@ -26,7 +28,6 @@ setTimeout(function wait(){if(ready()||Date.now()-start>3600)out();else setTimeo
 }catch(e){}})();`;
 
 const PANELS = 6;
-const LETTERS = "HAJI QUEENS".split("");
 
 export function Intro() {
   return (
@@ -44,19 +45,14 @@ export function Intro() {
           ))}
         </div>
         <div className="intro-lockup">
-          <svg viewBox="0 0 120 120" fill="none" className="intro-star">
-            <rect x="26" y="26" width="68" height="68" pathLength="1" />
-            <rect x="26" y="26" width="68" height="68" pathLength="1" className="intro-turn" />
-            <path d="M49 76V44M49 60h22M71 44v32" pathLength="1" className="intro-h" />
-          </svg>
-          <p className="intro-word">
-            {LETTERS.map((l, i) => (
-              <span key={i}>
-                <i style={{ animationDelay: `${0.85 + i * 0.04}s` }}>{l === " " ? " " : l}</i>
-              </span>
-            ))}
-          </p>
-          <p className="intro-by">by Hazera Khawaja</p>
+          <img
+            src={BRAND_LOGO}
+            alt=""
+            width={512}
+            height={491}
+            className="intro-logo"
+            fetchPriority="high"
+          />
         </div>
       </div>
     </>

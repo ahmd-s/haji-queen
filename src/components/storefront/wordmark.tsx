@@ -2,8 +2,9 @@ import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 /**
- * Brand lockup for the storefront. Keeps the existing HAJI QUEENS letterforms and
- * switches to supplied artwork as soon as NEXT_PUBLIC_LOGO_PATH is set.
+ * Brand lockup for the storefront. Keeps the existing HAJI QUEENS letterforms in
+ * navigation; the supplied emblem appears in the intro and footer instead.
+ * NEXT_PUBLIC_LOGO_PATH can replace this lockup with the artwork if desired.
  */
 export function Wordmark({
   size = "md",

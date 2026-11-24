@@ -3,13 +3,10 @@ import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 /**
  * Brand lockup.
  *
- * The official Haji Queens logo file was not supplied with this build.
- * This component renders a refined typographic placeholder lockup and will
- * automatically switch to the original artwork the moment it is added:
- *   1. place the file at /public/brand/logo.png (or .svg)
- *   2. set NEXT_PUBLIC_LOGO_PATH=/brand/logo.png
- * No code changes required. The placeholder is never misrepresented as the
- * original emblem.
+ * The owner's emblem is used in the intro and the footer. Compact navigation
+ * keeps this lighter typographic lockup; set NEXT_PUBLIC_LOGO_PATH if the
+ * original artwork should replace it here too. The mark is never
+ * misrepresented as the supplied emblem.
  */
 export function LogoMark({ size = 40 }: { size?: number }) {
   // Geometric ornament inspired by the brand's Islamic-pattern emblem:
