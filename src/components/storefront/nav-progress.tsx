@@ -1,25 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-/** Thin progress line so every internal link responds the moment it is tapped. */
+/**
+ * Thin progress line so links to another page respond the moment they are tapped.
+ * Reads only the pathname: useSearchParams here would force a client-rendered
+ * boundary into every static page.
+ */
 export function NavProgress() {
   const pathname = usePathname();
-  const search = useSearchParams().toString();
   const [from, setFrom] = useState<string | null>(null);
-  const here = `${pathname}?${search}`;
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented && !(e.target as Element)?.closest?.("a")) return;
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as Element).closest?.("a");
       if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
       const url = new URL(a.href, location.href);
-      if (url.origin !== location.origin) return;
-      if (url.pathname === location.pathname && url.search === location.search) return;
-      setFrom(`${location.pathname}?${location.search.slice(1)}`);
+      if (url.origin !== location.origin || url.pathname === location.pathname) return;
+      setFrom(location.pathname);
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
@@ -31,5 +31,5 @@ export function NavProgress() {
     return () => clearTimeout(t);
   }, [from]);
 
-  return from !== null && from === here ? <div className="nav-progress" aria-hidden="true" /> : null;
+  return from === pathname ? <div className="nav-progress" aria-hidden="true" /> : null;
 }

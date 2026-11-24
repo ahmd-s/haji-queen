@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/layout/cart-drawer";
@@ -19,9 +18,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   return (
     <div className={`hq ${newsreader.variable} ${hanken.variable} ${wordmark.variable}`}>
-      <Suspense>
-        <NavProgress />
-      </Suspense>
+      <NavProgress />
       <Header announcement={announcement} categories={categories} />
       <main id="main" className="flex-1">
         {children}
