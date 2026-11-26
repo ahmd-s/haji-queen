@@ -92,7 +92,7 @@ export default async function HomePage() {
     <>
       {/* Campaign */}
       <section aria-label="Campaign">
-        <div className="grid grid-cols-[1.9fr_1fr] grid-rows-2 gap-1 sm:grid-cols-[1.4fr_1.15fr_1fr] sm:grid-rows-1">
+        <div className="intro-photos grid grid-cols-[1.9fr_1fr] grid-rows-2 gap-1 sm:grid-cols-[1.4fr_1.15fr_1fr] sm:grid-rows-1">
           {frames.map((f, i) => (
             <Link
               key={f.src}
@@ -122,8 +122,8 @@ export default async function HomePage() {
           ))}
         </div>
         <div className="wrap grid items-end gap-x-16 gap-y-5 pt-7 md:grid-cols-[1.35fr_1fr] md:pt-9">
-          <h1 className="t-hero max-w-[15ch]">{hero.headline.replace(/\.$/, "")}</h1>
-          <div className="md:pb-2">
+          <h1 className="intro-enter-text t-hero max-w-[15ch]">{hero.headline.replace(/\.$/, "")}</h1>
+          <div className="intro-enter-text md:pb-2" style={{ "--n": 1 } as React.CSSProperties}>
             <p className="max-w-[46ch] text-[1.0625rem] leading-relaxed text-ink-soft">{hero.subtext}</p>
             <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-3">
               <Link href="/shop" className="btn btn-solid">

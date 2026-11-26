@@ -22,7 +22,7 @@ export function WhatsAppFloat() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with Haji Queens on WhatsApp"
-      className={`fixed bottom-5 right-5 z-30 size-13 items-center justify-center rounded-full bg-olive text-paper transition-colors hover:bg-ink ${onProduct ? "hidden md:flex" : "flex"}`}
+      className={`intro-enter fixed bottom-5 right-5 z-30 size-13 items-center justify-center rounded-full bg-olive text-paper transition-colors hover:bg-ink ${onProduct ? "hidden md:flex" : "flex"}`}
     >
       <WhatsAppGlyph className="size-6" />
     </a>

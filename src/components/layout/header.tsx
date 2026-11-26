@@ -72,7 +72,7 @@ export function Header({
       </a>
 
       {announcement?.enabled && announcement.text && (
-        <div className="bg-ink text-paper">
+        <div className="intro-enter bg-ink text-paper">
           <Link
             href={announcement.href || "/shop"}
             className="wrap flex min-h-10 items-center justify-center py-2 text-center text-[0.875rem] leading-snug transition-colors hover:text-sand"
@@ -90,7 +90,7 @@ export function Header({
       >
         <div className="wrap grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-4 xl:h-[4.75rem]">
           {/* Left */}
-          <div className="flex items-center">
+          <div className="intro-enter flex items-center">
             <button type="button" className={cn(iconButton, "-ml-3 xl:hidden")} onClick={() => setMenuOpen(true)} aria-label="Open menu">
               <Menu className="size-[1.35rem]" strokeWidth={1.4} />
             </button>
@@ -119,12 +119,12 @@ export function Header({
           </div>
 
           {/* Centre */}
-          <Link href="/" aria-label="Haji Queens, home" className="py-2">
+          <Link href="/" aria-label="Haji Queens, home" className="py-2" data-brand>
             <Wordmark />
           </Link>
 
           {/* Right */}
-          <div className="flex items-center justify-end">
+          <div className="intro-enter flex items-center justify-end">
             <div className="hidden items-center gap-7 xl:flex">
               <button type="button" className={textLink} onClick={() => setSearchOpen(true)}>
                 Search
